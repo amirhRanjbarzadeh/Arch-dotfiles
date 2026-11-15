@@ -8,9 +8,11 @@ Row {
     property var activeWifiNetwork: null
     property var audioSink: null
     property var adapter: null
+    property bool trayOpen: false
     signal wifiRequested
     signal volumeRequested
     signal bluetoothRequested
+    signal trayRequested
 
     spacing: 7
 
@@ -127,5 +129,11 @@ Row {
                 root.bluetoothRequested();
             }
         }
+    }
+
+    SystemTrayButton {
+        anchors.verticalCenter: parent.verticalCenter
+        active: root.trayOpen
+        onClicked: root.trayRequested()
     }
 }

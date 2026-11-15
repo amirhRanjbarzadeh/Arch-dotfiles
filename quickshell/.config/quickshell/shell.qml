@@ -1,3 +1,5 @@
+//@ pragma UseQApplication
+
 import Quickshell
 import Quickshell.Services.Pipewire
 import Quickshell.Hyprland
@@ -6,6 +8,7 @@ import QtQuick
 import "components"
 import "views"
 import "services"
+import "styles"
 
 PanelWindow {
     id: bar
@@ -16,11 +19,13 @@ PanelWindow {
 
     property var selectedWifiNetwork: null
     property string activePanel: ""
+    property bool trayPopupOpen: false
     readonly property bool islandExpanded: activePanel !== ""
     readonly property int islandHeight: activePanel === "wifi" ? 250 : activePanel === "bluetooth" ? 190 : activePanel === "volume" ? 78 : 34
 
     onActivePanelChanged: {
         if (islandExpanded) {
+            trayPopupOpen = false;
             islandDismissTimer.restart();
             escapeHandler.forceActiveFocus();
         }
@@ -91,7 +96,7 @@ PanelWindow {
     margins.top: 6
 
     implicitWidth: 520
-    implicitHeight: islandExpanded ? islandHeight + 12 : 34
+    implicitHeight: islandExpanded ? islandHeight + 12 : (trayPopupOpen ? 68 : 34)
     // Reserve only the collapsed bar height so expanding the island doesn't
     // reduce the usable tiled area in Hyprland.
     exclusiveZone: 34
@@ -100,9 +105,13 @@ PanelWindow {
     color: "transparent"
 
     HyprlandFocusGrab {
-        active: bar.islandExpanded
+        active: (bar.islandExpanded || bar.trayPopupOpen) && !systemTrayView.nativeMenuOpen
         windows: [bar, wifiPasswordView]
-        onCleared: bar.activePanel = ""
+        onCleared: {
+            bar.activePanel = "";
+            if (!systemTrayView.nativeMenuOpen)
+                bar.trayPopupOpen = false;
+        }
     }
 
     Item {
@@ -111,10 +120,22 @@ PanelWindow {
         Keys.onEscapePressed: bar.activePanel = ""
     }
 
+    Rectangle {
+        visible: bar.height > 34 && !bar.islandExpanded
+        width: bar.width
+        height: bar.height
+        radius: 17
+        color: Theme.background
+        border.width: 1
+        border.color: Theme.border
+        anchors.horizontalCenter: parent.horizontalCenter
+    }
+
     Island {
         id: island
         width: bar.islandExpanded ? (bar.activePanel === "volume" ? 240 : 270) : bar.width
         height: bar.islandExpanded ? bar.islandHeight : 34
+        backgroundVisible: bar.islandExpanded || bar.height <= 34
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
 
@@ -150,6 +171,27 @@ PanelWindow {
             onWifiRequested: bar.activePanel = bar.activePanel === "wifi" ? "" : "wifi"
             onVolumeRequested: bar.activePanel = bar.activePanel === "volume" ? "" : "volume"
             onBluetoothRequested: bar.activePanel = bar.activePanel === "bluetooth" ? "" : "bluetooth"
+            trayOpen: bar.trayPopupOpen
+            onTrayRequested: bar.trayPopupOpen = !bar.trayPopupOpen
+        }
+    }
+
+    Island {
+        id: trayRow
+        visible: height > 0
+        width: bar.width
+        height: bar.trayPopupOpen && !bar.islandExpanded ? 34 : 0
+        backgroundVisible: false
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: 34
+
+        Behavior on height { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
+        Behavior on y { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
+
+        SystemTrayView {
+            id: systemTrayView
+            anchors.fill: parent
+            barWindow: bar
         }
     }
 
@@ -198,4 +240,5 @@ PanelWindow {
         height: island.height
         anchors.centerIn: island
     }
+
 }
