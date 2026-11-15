@@ -6,22 +6,13 @@ import QtQuick.Layouts
 
 import "../styles"
 
-PopupWindow {
+Item {
     id: root
     property var barWindow
     property var adapter
 
-    anchor.window: root.barWindow
-    anchor.rect.x: root.barWindow.width - width - 45
-    anchor.rect.y: root.barWindow.height + 8
-
     implicitWidth: 250
     implicitHeight: 190
-
-    color: "transparent"
-
-    visible: false
-    grabFocus: true
 
     Rectangle {
         anchors.fill: parent

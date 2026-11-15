@@ -6,24 +6,15 @@ import QtQuick.Layouts
 
 import "../styles"
 
-PopupWindow {
+Item {
     id: root
     property var barWindow
     property var wifiDevice
     property var activeWifiNetwork
     signal passwordRequested(var network)
 
-    anchor.window: root.barWindow
-    anchor.rect.x: root.barWindow.width - width - 18
-    anchor.rect.y: root.barWindow.height + 8
-
-    color: "transparent"
-
     implicitWidth: 250
     implicitHeight: 250
-
-    visible: false
-    grabFocus: true
 
     onVisibleChanged: {
         if (visible && root.wifiDevice) {

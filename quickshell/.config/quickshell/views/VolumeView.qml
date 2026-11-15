@@ -3,22 +3,14 @@ import QtQuick
 import QtQuick.Controls
 import "../styles"
 
-PopupWindow {
+Item {
     id: root
     property var barWindow
     property var audioSink
 
-    anchor.window: root.barWindow
-    anchor.rect.x: root.barWindow.width - width - 18
-    anchor.rect.y: root.barWindow.height + 8
-
-    color: "transparent"
-
     implicitWidth: 220
     implicitHeight: 78
 
-    visible: false
-    grabFocus: true
 
     Rectangle {
         anchors.fill: parent

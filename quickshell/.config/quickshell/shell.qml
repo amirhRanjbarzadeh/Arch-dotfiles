@@ -1,5 +1,6 @@
 import Quickshell
 import Quickshell.Services.Pipewire
+import Quickshell.Hyprland
 
 import QtQuick
 import "components"
@@ -14,6 +15,16 @@ PanelWindow {
     // ==========================================
 
     property var selectedWifiNetwork: null
+    property string activePanel: ""
+    readonly property bool islandExpanded: activePanel !== ""
+    readonly property int islandHeight: activePanel === "wifi" ? 250 : activePanel === "bluetooth" ? 190 : activePanel === "volume" ? 78 : 34
+
+    onActivePanelChanged: {
+        if (islandExpanded) {
+            islandDismissTimer.restart();
+            escapeHandler.forceActiveFocus();
+        }
+    }
 
     // ==========================================
     // NETWORK STATE
@@ -22,9 +33,32 @@ PanelWindow {
     NetworkService {
         id: networkService
     }
+
+    Timer {
+        id: islandDismissTimer
+        interval: 5000
+        repeat: false
+        running: bar.islandExpanded
+        onTriggered: bar.activePanel = ""
+    }
     AudioService {
         id: audioService
     }
+
+    Connections {
+        target: audioService.sink?.audio ?? null
+
+        function onVolumeChanged() {
+            bar.activePanel = "volume";
+            islandDismissTimer.restart();
+        }
+
+        function onMutedChanged() {
+            bar.activePanel = "volume";
+            islandDismissTimer.restart();
+        }
+    }
+
     BluetoothService {
         id: bluetoothService
     }
@@ -57,14 +91,39 @@ PanelWindow {
     margins.top: 6
 
     implicitWidth: 520
-    implicitHeight: 34
+    implicitHeight: islandExpanded ? islandHeight + 12 : 34
+    // Reserve only the collapsed bar height so expanding the island doesn't
+    // reduce the usable tiled area in Hyprland.
+    exclusiveZone: 34
+    Behavior on implicitHeight { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
 
     color: "transparent"
 
+    HyprlandFocusGrab {
+        active: bar.islandExpanded
+        windows: [bar, wifiPasswordView]
+        onCleared: bar.activePanel = ""
+    }
+
+    Item {
+        id: escapeHandler
+        focus: bar.islandExpanded
+        Keys.onEscapePressed: bar.activePanel = ""
+    }
+
     Island {
-        anchors.fill: parent
+        id: island
+        width: bar.islandExpanded ? (bar.activePanel === "volume" ? 240 : 270) : bar.width
+        height: bar.islandExpanded ? bar.islandHeight : 34
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+
+        Behavior on width { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
+        Behavior on height { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
+        Behavior on y { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
 
         WorkspaceSection {
+            visible: !bar.islandExpanded
             anchors {
                 left: parent.left
                 leftMargin: 18
@@ -73,10 +132,12 @@ PanelWindow {
         }
 
         Clock {
+            visible: !bar.islandExpanded
             anchors.centerIn: parent
         }
 
         StatusIndicators {
+            visible: !bar.islandExpanded
             anchors {
                 right: parent.right
                 rightMargin: 18
@@ -86,9 +147,9 @@ PanelWindow {
             activeWifiNetwork: bar.activeWifiNetwork
             audioSink: audioService.sink
             adapter: bluetoothService.adapter
-            onWifiRequested: wifiView.visible = !wifiView.visible
-            onVolumeRequested: volumeView.visible = !volumeView.visible
-            onBluetoothRequested: bluetoothView.visible = !bluetoothView.visible
+            onWifiRequested: bar.activePanel = bar.activePanel === "wifi" ? "" : "wifi"
+            onVolumeRequested: bar.activePanel = bar.activePanel === "volume" ? "" : "volume"
+            onBluetoothRequested: bar.activePanel = bar.activePanel === "bluetooth" ? "" : "bluetooth"
         }
     }
 
@@ -97,14 +158,16 @@ PanelWindow {
         barWindow: bar
         wifiDevice: networkService.wifiDevice
         activeWifiNetwork: networkService.activeWifiNetwork
+        visible: bar.activePanel === "wifi"
+        width: island.width
+        height: island.height
+        anchors.centerIn: island
         onPasswordRequested: network => {
             bar.selectedWifiNetwork = network;
             wifiPasswordView.passwordError = "";
             wifiPasswordView.connecting = false;
             wifiPasswordView.visible = true;
         }
-        anchor.rect.x: bar.width - width - 18
-        anchor.rect.y: bar.height + 8
     }
 
     WifiPasswordView {
@@ -120,15 +183,19 @@ PanelWindow {
         id: volumeView
         barWindow: bar
         audioSink: audioService.sink
-        anchor.rect.x: bar.width - width - 18
-        anchor.rect.y: bar.height + 8
+        visible: bar.activePanel === "volume"
+        width: island.width
+        height: island.height
+        anchors.centerIn: island
     }
 
     BluetoothView {
         id: bluetoothView
         barWindow: bar
         adapter: bluetoothService.adapter
-        anchor.rect.x: bar.width - width - 45
-        anchor.rect.y: bar.height + 8
+        visible: bar.activePanel === "bluetooth"
+        width: island.width
+        height: island.height
+        anchors.centerIn: island
     }
 }
