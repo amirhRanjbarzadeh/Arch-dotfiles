@@ -11,7 +11,7 @@ Item {
         radius: height / 2
         color: Theme.background
         border.width: 1
-        border.color: Theme.surface
+        border.color: Theme.border
     }
 
     Item {

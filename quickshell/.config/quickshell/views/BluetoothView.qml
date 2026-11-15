@@ -1,6 +1,7 @@
 import Quickshell
 import Quickshell.Bluetooth
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Controls
 import QtQuick.Layouts
 
@@ -18,11 +19,20 @@ Item {
         anchors.fill: parent
 
         radius: 14
-        color: Theme.background
+        color: Theme.popupBackground
 
         border {
             width: 1
             color: Theme.border
+        }
+
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            shadowEnabled: true
+            shadowColor: Theme.shadow
+            shadowBlur: 0.8
+            shadowVerticalOffset: 7
+            shadowScale: 1.03
         }
 
         Column {

@@ -2,13 +2,13 @@ import Quickshell.Hyprland
 import QtQuick
 import "../styles"
 
-Row {
+Item {
     id: root
 
     property int workspaceCount: 4
     property int activeWorkspace: Hyprland.focusedWorkspace?.id ?? 1
 
-    spacing: 5
+    property int itemSpacing: 5
 
     readonly property var workspaceIds: {
         if (activeWorkspace > workspaceCount)
@@ -21,32 +21,61 @@ Row {
         }, (_, i) => i + 1);
     }
 
-    Repeater {
-        model: root.workspaceIds
+    readonly property int activeIndex: Math.max(0, workspaceIds.indexOf(activeWorkspace))
+    readonly property real activeX: {
+        let x = 0;
+        for (let i = 0; i < activeIndex; i++)
+            x += (workspaceIds[i] >= 10 ? 34 : 28) + itemSpacing;
+        return x;
+    }
+    readonly property int activeWidth: activeWorkspace >= 10 ? 34 : 28
 
-        delegate: Rectangle {
-            required property int modelData
+    width: workspaceRow.implicitWidth
+    height: 20
 
-            readonly property bool isActive: root.activeWorkspace === modelData
-            readonly property int workspaceId: modelData
+    Rectangle {
+        id: activePill
+        x: root.activeX
+        width: root.activeWidth
+        height: root.height
+        radius: height / 2
+        color: Theme.accent
 
-            width: modelData >= 10 ? 26 : 20
-            height: 20
-            radius: 10
-            color: isActive ? Theme.accent : "transparent"
+        Behavior on x {
+            NumberAnimation { duration: 240; easing.type: Easing.OutCubic }
+        }
+    }
 
-            Text {
-                anchors.centerIn: parent
-                text: parent.workspaceId
-                color: parent.isActive ? "#11111b" : Theme.muted
-                font.pixelSize: 12
-                font.bold: parent.isActive
-            }
+    Row {
+        id: workspaceRow
+        spacing: root.itemSpacing
+        anchors.fill: parent
 
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                onClicked: Hyprland.dispatch("hl.dsp.focus({ workspace = " + parent.workspaceId + " })")
+        Repeater {
+            model: root.workspaceIds
+
+            delegate: Item {
+                required property int modelData
+
+                readonly property bool isActive: root.activeWorkspace === modelData
+                readonly property int workspaceId: modelData
+
+                width: modelData >= 10 ? 34 : 28
+                height: 20
+
+                Text {
+                    anchors.centerIn: parent
+                    text: parent.workspaceId
+                    color: parent.isActive ? "#11111b" : Theme.muted
+                    font.pixelSize: 12
+                    font.bold: parent.isActive
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: Hyprland.dispatch("hl.dsp.focus({ workspace = " + parent.workspaceId + " })")
+                }
             }
         }
     }
