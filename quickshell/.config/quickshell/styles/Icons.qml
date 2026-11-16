@@ -36,4 +36,6 @@ QtObject {
     readonly property string chevronDown: glyph(0xF0140)
     readonly property string refresh: glyph(0xF0450)
     readonly property string check: glyph(0xF012C)
+    readonly property string close: glyph(0xF0156)
+    readonly property string bell: glyph(0xF009A)
 }

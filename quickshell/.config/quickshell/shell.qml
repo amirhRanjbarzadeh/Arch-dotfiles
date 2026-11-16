@@ -19,7 +19,7 @@ PanelWindow {
     // STATE
     // ==========================================
 
-    // Which island panel is open: "", "wifi", "bluetooth" or "volume"
+    // Which island panel is open: "", "wifi", "bluetooth", "volume" or "notification"
     property string activePanel: ""
     // The collapsed bar has two pages: status (false) and system tray (true).
     // Scroll down on the bar for the tray, scroll up to come back.
@@ -27,7 +27,22 @@ PanelWindow {
     property var selectedWifiNetwork: null
 
     readonly property bool islandExpanded: activePanel !== ""
-    readonly property Item activeView: activePanel === "wifi" ? wifiView : activePanel === "bluetooth" ? bluetoothView : activePanel === "volume" ? volumeView : null
+    readonly property Item activeView: {
+        switch (activePanel) {
+        case "wifi":
+            return wifiView;
+        case "bluetooth":
+            return bluetoothView;
+        case "volume":
+            return volumeView;
+        case "notification":
+            return notificationView;
+        default:
+            return null;
+        }
+    }
+    // Panels you work in: they take clicks-outside-to-close and keyboard focus.
+    readonly property bool interactivePanelOpen: activePanel === "wifi" || activePanel === "bluetooth"
 
     // Each view owns its size; the island just morphs to fit it.
     readonly property int islandWidth: activeView ? activeView.implicitWidth : Theme.barWidth
@@ -48,6 +63,9 @@ PanelWindow {
     }
 
     function closeAll() {
+        // Closing a notification card means dismissing that notification.
+        if (activePanel === "notification")
+            notificationService.current?.dismiss();
         activePanel = "";
         trayVisible = false;
     }
@@ -57,6 +75,9 @@ PanelWindow {
             trayVisible = false;
         if (activePanel !== "wifi")
             selectedWifiNetwork = null;
+        // Island freed up: show any notification that was waiting.
+        if (activePanel === "")
+            Qt.callLater(showNotification);
         updateAutoDismiss();
     }
 
@@ -77,6 +98,24 @@ PanelWindow {
 
     BluetoothService {
         id: bluetoothService
+    }
+
+    NotificationService {
+        id: notificationService
+    }
+
+    Connections {
+        target: notificationService
+
+        function onCurrentChanged() {
+            bar.showNotification();
+        }
+
+        // Replaced content (e.g. progress updates) restarts the countdown.
+        function onUpdated(notification) {
+            if (notification === notificationService.current)
+                bar.updateAutoDismiss();
+        }
     }
 
     PwObjectTracker {
@@ -105,19 +144,42 @@ PanelWindow {
     }
 
     function showVolumeOsd() {
-        // Don't hijack the island while another panel is in use.
-        if (!volumeOsdArmed || (activePanel !== "" && activePanel !== "volume"))
+        // Don't hijack Wi-Fi/Bluetooth while in use. A notification is fine to
+        // interrupt: it comes back once the volume OSD closes.
+        if (!volumeOsdArmed || interactivePanelOpen)
             return;
         activePanel = "volume";
         updateAutoDismiss();
     }
 
-    // Only the volume island auto-closes, and never while the pointer is on it.
+    // Notifications take the island whenever it's idle or only showing the volume OSD;
+    // while Wi-Fi/Bluetooth are open they wait in the queue.
+    function showNotification() {
+        if (!notificationService.current) {
+            if (activePanel === "notification")
+                activePanel = "";
+            return;
+        }
+        if (activePanel === "" || activePanel === "notification") {
+            activePanel = "notification";
+            updateAutoDismiss();
+        }
+    }
+
+    // Volume OSD and notifications auto-close, but never while the pointer is on the bar.
     function updateAutoDismiss() {
-        if (activePanel === "volume" && !barHover.hovered)
+        let timeout = 0;
+        if (activePanel === "volume")
+            timeout = 3000;
+        else if (activePanel === "notification")
+            timeout = notificationService.timeoutFor(notificationService.current);
+
+        if (timeout > 0 && !barHover.hovered) {
+            autoDismissTimer.interval = timeout;
             autoDismissTimer.restart();
-        else
+        } else {
             autoDismissTimer.stop();
+        }
     }
 
     // The tray page flips back to status 5s after the pointer leaves the bar.
@@ -137,10 +199,11 @@ PanelWindow {
 
     Timer {
         id: autoDismissTimer
-        interval: 3000
         onTriggered: {
             if (bar.activePanel === "volume")
                 bar.activePanel = "";
+            else if (bar.activePanel === "notification")
+                notificationService.current?.expire();
         }
     }
 
@@ -190,7 +253,7 @@ PanelWindow {
     // Panels and the tray page accept the keyboard once clicked (Escape to close).
     // Not Exclusive: on this Hyprland, switching to Exclusive stalls the bar's
     // rendering. The volume OSD stays None so volume keys never steal focus.
-    WlrLayershell.keyboardFocus: activePanel === "wifi" || activePanel === "bluetooth" || trayVisible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    WlrLayershell.keyboardFocus: interactivePanelOpen || trayVisible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     // Only the island accepts input; the transparent rest of the window is click-through.
     mask: Region {
@@ -199,7 +262,9 @@ PanelWindow {
 
     // Clicking anywhere outside closes panels and returns from the tray page.
     HyprlandFocusGrab {
-        active: (bar.islandExpanded || bar.trayVisible) && !systemTrayView.nativeMenuOpen
+        // Not for the volume OSD or notifications: they pop up on their own, and
+        // an active grab would swallow your next click elsewhere.
+        active: (bar.interactivePanelOpen || bar.trayVisible) && !systemTrayView.nativeMenuOpen
         windows: [bar, wifiPasswordView]
         onCleared: {
             if (!systemTrayView.nativeMenuOpen)
@@ -347,6 +412,14 @@ PanelWindow {
             anchors.fill: island
             visible: bar.activePanel === "bluetooth"
             adapter: bluetoothService.adapter
+        }
+
+        NotificationView {
+            id: notificationView
+            anchors.fill: island
+            visible: bar.activePanel === "notification"
+            notification: notificationService.current
+            pendingCount: Math.max(0, notificationService.queue.length - 1)
         }
 
         VolumeView {
