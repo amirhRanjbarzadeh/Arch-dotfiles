@@ -20,6 +20,9 @@ QtObject {
     readonly property string volumeMedium: glyph(0xF0580)
     readonly property string volumeHigh: glyph(0xF057E)
 
+    // Brightness: low, medium, high
+    readonly property var brightnessLevels: [glyph(0xF00DE), glyph(0xF00DF), glyph(0xF00E0)]
+
     // Bluetooth
     readonly property string bluetooth: glyph(0xF00AF)
     readonly property string bluetoothConnected: glyph(0xF00B1)

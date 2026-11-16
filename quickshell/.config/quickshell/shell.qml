@@ -19,7 +19,10 @@ PanelWindow {
     // STATE
     // ==========================================
 
-    // Which island panel is open: "", "wifi", "bluetooth", "volume" or "notification"
+    // Which island panel is open:
+    //   "wifi", "bluetooth", "controls"  interactive panels you open by clicking
+    //   "volume", "brightness"           key-press popups (one slider, auto-close)
+    //   "notification"                   incoming notification card
     property string activePanel: ""
     // The collapsed bar has two pages: status (false) and system tray (true).
     // Scroll down on the bar for the tray, scroll up to come back.
@@ -34,7 +37,9 @@ PanelWindow {
         case "bluetooth":
             return bluetoothView;
         case "volume":
-            return volumeView;
+        case "brightness":
+        case "controls":
+            return controlsView;
         case "notification":
             return notificationView;
         default:
@@ -42,7 +47,7 @@ PanelWindow {
         }
     }
     // Panels you work in: they take clicks-outside-to-close and keyboard focus.
-    readonly property bool interactivePanelOpen: activePanel === "wifi" || activePanel === "bluetooth"
+    readonly property bool interactivePanelOpen: activePanel === "wifi" || activePanel === "bluetooth" || activePanel === "controls"
 
     // Each view owns its size; the island just morphs to fit it.
     readonly property int islandWidth: activeView ? activeView.implicitWidth : Theme.barWidth
@@ -93,7 +98,11 @@ PanelWindow {
 
     AudioService {
         id: audioService
-        onSinkChanged: bar.armVolumeOsd()
+        onSinkChanged: bar.armOsd()
+    }
+
+    BrightnessService {
+        id: brightnessService
     }
 
     BluetoothService {
@@ -131,24 +140,25 @@ PanelWindow {
     }
 
     // ==========================================
-    // TIMERS: volume OSD and tray page
+    // TIMERS: key-press popups, notifications and tray page
     // ==========================================
 
-    // PipeWire emits a burst of volume/mute changes while a sink first binds;
-    // ignore those so the OSD doesn't flash at startup or on device switch.
-    property bool volumeOsdArmed: false
+    // PipeWire emits a burst of volume/mute changes while a sink first binds, and
+    // the backlight is read once at startup; ignore those so no popup flashes.
+    property bool osdArmed: false
 
-    function armVolumeOsd() {
-        volumeOsdArmed = false;
+    function armOsd() {
+        osdArmed = false;
         osdArmTimer.restart();
     }
 
-    function showVolumeOsd() {
-        // Don't hijack Wi-Fi/Bluetooth while in use. A notification is fine to
-        // interrupt: it comes back once the volume OSD closes.
-        if (!volumeOsdArmed || interactivePanelOpen)
+    // kind: "volume" or "brightness"
+    function showOsd(kind) {
+        // Don't hijack a panel in use (the open controls panel already shows the
+        // change live). A notification is fine to interrupt: it comes back after.
+        if (!osdArmed || interactivePanelOpen)
             return;
-        activePanel = "volume";
+        activePanel = kind;
         updateAutoDismiss();
     }
 
@@ -169,7 +179,7 @@ PanelWindow {
     // Volume OSD and notifications auto-close, but never while the pointer is on the bar.
     function updateAutoDismiss() {
         let timeout = 0;
-        if (activePanel === "volume")
+        if (activePanel === "volume" || activePanel === "brightness")
             timeout = 3000;
         else if (activePanel === "notification")
             timeout = notificationService.timeoutFor(notificationService.current);
@@ -194,13 +204,13 @@ PanelWindow {
         id: osdArmTimer
         interval: 1500
         running: true
-        onTriggered: bar.volumeOsdArmed = true
+        onTriggered: bar.osdArmed = true
     }
 
     Timer {
         id: autoDismissTimer
         onTriggered: {
-            if (bar.activePanel === "volume")
+            if (bar.activePanel === "volume" || bar.activePanel === "brightness")
                 bar.activePanel = "";
             else if (bar.activePanel === "notification")
                 notificationService.current?.expire();
@@ -217,11 +227,19 @@ PanelWindow {
         target: audioService.sink?.audio ?? null
 
         function onVolumeChanged() {
-            bar.showVolumeOsd();
+            bar.showOsd("volume");
         }
 
         function onMutedChanged() {
-            bar.showVolumeOsd();
+            bar.showOsd("volume");
+        }
+    }
+
+    Connections {
+        target: brightnessService
+
+        function onRawChanged() {
+            bar.showOsd("brightness");
         }
     }
 
@@ -252,7 +270,7 @@ PanelWindow {
     WlrLayershell.namespace: "quickshell:bar"
     // Panels and the tray page accept the keyboard once clicked (Escape to close).
     // Not Exclusive: on this Hyprland, switching to Exclusive stalls the bar's
-    // rendering. The volume OSD stays None so volume keys never steal focus.
+    // rendering. Key-press popups stay None so they never steal focus from your app.
     WlrLayershell.keyboardFocus: interactivePanelOpen || trayVisible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     // Only the island accepts input; the transparent rest of the window is click-through.
@@ -279,7 +297,7 @@ PanelWindow {
         function toggle(panel: string): void {
             if (panel === "tray")
                 bar.setTrayVisible(!bar.trayVisible);
-            else if (["wifi", "bluetooth", "volume"].includes(panel))
+            else if (["wifi", "bluetooth", "controls", "volume", "brightness"].includes(panel))
                 bar.togglePanel(panel);
         }
 
@@ -377,7 +395,7 @@ PanelWindow {
                         adapter: bluetoothService.adapter
 
                         onWifiRequested: bar.togglePanel("wifi")
-                        onVolumeRequested: bar.togglePanel("volume")
+                        onVolumeRequested: bar.togglePanel("controls")
                         onBluetoothRequested: bar.togglePanel("bluetooth")
                     }
                 }
@@ -422,11 +440,15 @@ PanelWindow {
             pendingCount: Math.max(0, notificationService.queue.length - 1)
         }
 
-        VolumeView {
-            id: volumeView
+        ControlsView {
+            id: controlsView
             anchors.fill: island
-            visible: bar.activePanel === "volume"
+            visible: bar.activePanel === "volume" || bar.activePanel === "brightness" || bar.activePanel === "controls"
             audioSink: audioService.sink
+            brightness: brightnessService
+            // Key-press popups show only the slider that changed; the panel shows both.
+            showVolume: bar.activePanel !== "brightness"
+            showBrightness: bar.activePanel !== "volume"
         }
     }
 
