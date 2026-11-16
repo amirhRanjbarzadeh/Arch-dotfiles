@@ -1,97 +1,59 @@
-import Quickshell
 import QtQuick
-import QtQuick.Effects
 import QtQuick.Controls
+import QtQuick.Layouts
+import "../components"
 import "../styles"
 
 Item {
     id: root
-    property var barWindow
+
     property var audioSink
+    readonly property var audio: audioSink?.audio ?? null
 
     implicitWidth: 240
     implicitHeight: 78
 
-    Rectangle {
+    Card {
         anchors.fill: parent
+        padding: 12
 
-        radius: 14
-        color: Theme.popupBackground
-
-        border {
-            width: 1
-            color: Theme.border
-        }
-
-        layer.enabled: true
-        layer.effect: MultiEffect {
-            shadowEnabled: true
-            shadowColor: Theme.shadow
-            shadowBlur: 0.8
-            shadowVerticalOffset: 7
-            shadowScale: 1.03
-        }
-
-        Column {
-            anchors {
-                fill: parent
-                margins: 12
-            }
-
+        ColumnLayout {
+            anchors.fill: parent
             spacing: 4
 
-            Item {
-                width: parent.width
-                height: 22
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
 
-                Rectangle {
-                    id: muteButton
-                    width: 24
-                    height: 22
-                    radius: 7
-                    color: muteMouseArea.containsMouse ? Theme.surface : "transparent"
-                    opacity: root.audioSink?.audio ? 1 : 0.5
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: root.audioSink?.audio?.muted ? "󰖁" : "󰕾"
-                        color: root.audioSink?.audio?.muted ? Theme.muted : Theme.accent
-                        font.pixelSize: 16
-                    }
-
-                    MouseArea {
-                        id: muteMouseArea
-                        anchors.fill: parent
-                        enabled: !!root.audioSink?.audio
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.audioSink.audio.muted = !root.audioSink.audio.muted
-                    }
+                IconButton {
+                    enabled: root.audio !== null
+                    opacity: enabled ? 1 : 0.5
+                    icon: root.audio?.muted ? Icons.volumeMute : Icons.volumeHigh
+                    iconColor: root.audio?.muted ? Theme.muted : Theme.accent
+                    iconSize: 16
+                    onClicked: root.audio.muted = !root.audio.muted
                 }
 
                 Text {
-                    text: "Output volume"
+                    Layout.fillWidth: true
+                    text: root.audioSink?.description || root.audioSink?.nickname || "Output volume"
                     color: Theme.text
                     font.pixelSize: 11
                     font.bold: true
-                    anchors.left: parent.left
-                    anchors.leftMargin: 32
-                    anchors.verticalCenter: parent.verticalCenter
+                    elide: Text.ElideRight
                 }
 
                 Rectangle {
-                    width: volumeValue.implicitWidth + 14
-                    height: 20
+                    implicitWidth: Math.max(38, volumeValue.implicitWidth + 14)
+                    implicitHeight: 20
                     radius: 7
                     color: Theme.surface
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
 
                     Text {
                         id: volumeValue
                         anchors.centerIn: parent
-                        text: root.audioSink?.audio ? Math.round(root.audioSink.audio.volume * 100) + "%" : "--"
-                        color: Theme.text
+                        text: !root.audio ? "--" : root.audio.muted ? "Muted" : Math.round(root.audio.volume * 100) + "%"
+                        color: root.audio?.muted ? Theme.muted : Theme.text
                         font.pixelSize: 10
                         font.bold: true
                     }
@@ -99,59 +61,56 @@ Item {
             }
 
             Slider {
-                id: popupVolumeSlider
+                id: volumeSlider
 
-                width: parent.width
-                height: 26
+                Layout.fillWidth: true
+                Layout.preferredHeight: 26
 
                 from: 0
                 to: 1
                 stepSize: 0.01
+                enabled: root.audio !== null
 
-                enabled: root.audioSink?.audio !== null && root.audioSink?.audio !== undefined
-
+                // Follow the system volume except while the user is dragging.
                 Binding {
-                    target: popupVolumeSlider
+                    target: volumeSlider
                     property: "value"
-
-                    value: root.audioSink?.audio?.volume ?? 0
-                    when: !popupVolumeSlider.pressed
+                    value: root.audio?.volume ?? 0
+                    when: !volumeSlider.pressed
                 }
 
                 onMoved: {
-                    if (root.audioSink?.audio) {
-                        root.audioSink.audio.volume = value;
-                    }
+                    if (root.audio)
+                        root.audio.volume = value;
                 }
 
                 background: Rectangle {
-                    x: popupVolumeSlider.leftPadding
-                    y: popupVolumeSlider.topPadding + popupVolumeSlider.availableHeight / 2 - height / 2
-                    width: popupVolumeSlider.availableWidth
+                    x: volumeSlider.leftPadding
+                    y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
+                    width: volumeSlider.availableWidth
                     height: 5
                     radius: 2.5
-                    color: popupVolumeSlider.hovered ? Theme.border : Theme.surface
+                    color: volumeSlider.hovered ? Theme.border : Theme.surface
 
                     Rectangle {
-                        width: parent.width * popupVolumeSlider.visualPosition
+                        width: parent.width * volumeSlider.visualPosition
                         height: parent.height
                         radius: parent.radius
-                        color: popupVolumeSlider.enabled ? Theme.accent : Theme.muted
+                        color: volumeSlider.enabled && !root.audio?.muted ? Theme.accent : Theme.muted
                     }
                 }
 
                 handle: Rectangle {
-                    x: popupVolumeSlider.leftPadding + popupVolumeSlider.visualPosition * (popupVolumeSlider.availableWidth - width)
-                    y: popupVolumeSlider.topPadding + popupVolumeSlider.availableHeight / 2 - height / 2
-                    width: popupVolumeSlider.hovered ? 16 : 14
-                    height: popupVolumeSlider.hovered ? 16 : 14
-                    radius: 8
+                    x: volumeSlider.leftPadding + volumeSlider.visualPosition * (volumeSlider.availableWidth - width)
+                    y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
+                    width: volumeSlider.hovered || volumeSlider.pressed ? 16 : 14
+                    height: width
+                    radius: width / 2
                     color: Theme.text
                     border.width: 3
-                    border.color: Theme.accent
+                    border.color: root.audio?.muted ? Theme.muted : Theme.accent
 
                     Behavior on width { NumberAnimation { duration: 100 } }
-                    Behavior on height { NumberAnimation { duration: 100 } }
                 }
             }
         }

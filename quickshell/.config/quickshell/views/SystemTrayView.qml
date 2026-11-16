@@ -1,29 +1,25 @@
+pragma ComponentBehavior: Bound
+
 import Quickshell
 import Quickshell.Services.SystemTray
-
+import Quickshell.Widgets
 import QtQuick
-import QtQuick.Controls
+import "../components"
 import "../styles"
 
 Item {
     id: root
 
-    property var barWindow
+    property bool open: false
     property bool nativeMenuOpen: false
     readonly property int trayCount: SystemTray.items.values.length
 
-    opacity: barWindow?.trayPopupOpen ? 1 : 0
-    Behavior on opacity {
-        NumberAnimation {
-            duration: 260
-            easing.type: Easing.OutCubic
-        }
-    }
+    opacity: open ? 1 : 0
+    Behavior on opacity { NumberAnimation { duration: Theme.animDuration; easing.type: Easing.OutCubic } }
 
     Row {
-        anchors.horizontalCenter: parent.horizontalCenter
-        y: 0
-        height: 34
+        anchors.centerIn: parent
+        height: Theme.barHeight
         spacing: 6
 
         Repeater {
@@ -31,34 +27,35 @@ Item {
 
             delegate: Item {
                 id: trayDelegate
+
                 required property var modelData
                 readonly property var trayItem: modelData
+
                 width: 30
-                height: 34
+                height: Theme.barHeight
 
                 Rectangle {
                     id: iconTile
+
                     width: 28
                     height: 28
-                    radius: 8
+                    radius: Theme.itemRadius
                     anchors.centerIn: parent
                     color: trayMouseArea.containsMouse ? Theme.surface : "transparent"
 
-                    Image {
+                    IconImage {
+                        id: iconImage
                         anchors.centerIn: parent
-                        width: 20
-                        height: 20
+                        implicitSize: 20
                         source: trayDelegate.trayItem.icon
-                        sourceSize.width: width
-                        sourceSize.height: height
-                        fillMode: Image.PreserveAspectFit
-                        smooth: true
-                        visible: source.toString() !== ""
+                        mipmap: true
+                        visible: source.toString() !== "" && status !== Image.Error
                     }
 
+                    // Fallback: first letter of the app name when the icon can't load
                     Text {
                         anchors.centerIn: parent
-                        visible: trayDelegate.trayItem.icon.toString() === ""
+                        visible: !iconImage.visible
                         text: (trayDelegate.trayItem.title || trayDelegate.trayItem.id || "?").charAt(0).toUpperCase()
                         color: Theme.accent
                         font.pixelSize: 14
@@ -69,38 +66,40 @@ Item {
                         id: nativeMenu
                         menu: trayDelegate.trayItem.menu
                         anchor.item: iconTile
+                        anchor.edges: Edges.Bottom
+                        anchor.gravity: Edges.Bottom
                         onOpened: root.nativeMenuOpen = true
                         onClosed: root.nativeMenuOpen = false
                     }
 
                     MouseArea {
                         id: trayMouseArea
+
                         anchors.fill: parent
                         hoverEnabled: true
                         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
                         cursorShape: Qt.PointingHandCursor
+
                         onClicked: mouse => {
+                            const item = trayDelegate.trayItem;
                             if (mouse.button === Qt.LeftButton) {
-                                if (trayDelegate.trayItem.onlyMenu && trayDelegate.trayItem.hasMenu)
+                                if (item.onlyMenu && item.hasMenu)
                                     nativeMenu.open();
                                 else
-                                    trayDelegate.trayItem.activate();
-                            } else if (mouse.button === Qt.RightButton && trayDelegate.trayItem.hasMenu) {
+                                    item.activate();
+                            } else if (mouse.button === Qt.RightButton && item.hasMenu) {
                                 nativeMenu.open();
                             } else if (mouse.button === Qt.MiddleButton) {
-                                trayDelegate.trayItem.secondaryActivate();
+                                item.secondaryActivate();
                             }
                         }
-                        onWheel: wheel => {
-                            const horizontal = Math.abs(wheel.angleDelta.x) > Math.abs(wheel.angleDelta.y);
-                            const delta = horizontal ? wheel.angleDelta.x : wheel.angleDelta.y;
-                            if (delta !== 0)
-                                trayDelegate.trayItem.scroll(delta, horizontal);
-                            wheel.accepted = true;
-                        }
-                        ToolTip.visible: containsMouse && trayDelegate.trayItem.title !== ""
-                        ToolTip.delay: 500
-                        ToolTip.text: trayDelegate.trayItem.tooltipTitle || trayDelegate.trayItem.title
+                        // No onWheel: scrolling over tray icons switches the bar back to status.
+                    }
+
+                    BarTooltip {
+                        target: iconTile
+                        text: trayDelegate.trayItem.tooltipTitle || trayDelegate.trayItem.title || ""
+                        hovered: trayMouseArea.containsMouse && !root.nativeMenuOpen
                     }
                 }
             }
@@ -108,10 +107,10 @@ Item {
 
         Text {
             visible: root.trayCount === 0
+            anchors.verticalCenter: parent.verticalCenter
             text: "No tray applications"
             color: Theme.muted
             font.pixelSize: 11
-            anchors.verticalCenter: parent.verticalCenter
         }
     }
 }

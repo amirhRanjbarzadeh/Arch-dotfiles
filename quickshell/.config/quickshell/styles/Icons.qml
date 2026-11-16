@@ -1,0 +1,39 @@
+pragma Singleton
+
+import QtQuick
+
+// Nerd Font (Material Design) glyphs, by name, so views don't embed raw codepoints.
+QtObject {
+    function glyph(code) {
+        return String.fromCodePoint(code);
+    }
+
+    // Wi-Fi
+    readonly property string wifiOff: glyph(0xF092D)
+    readonly property string wifiOutline: glyph(0xF092F)
+    readonly property var wifiLevels: [glyph(0xF091F), glyph(0xF0922), glyph(0xF0925), glyph(0xF0928)]
+    readonly property string lock: glyph(0xF033E)
+
+    // Audio
+    readonly property string volumeMute: glyph(0xF0581)
+    readonly property string volumeLow: glyph(0xF057F)
+    readonly property string volumeMedium: glyph(0xF0580)
+    readonly property string volumeHigh: glyph(0xF057E)
+
+    // Bluetooth
+    readonly property string bluetooth: glyph(0xF00AF)
+    readonly property string bluetoothConnected: glyph(0xF00B1)
+    readonly property string bluetoothOff: glyph(0xF00B2)
+    readonly property string link: glyph(0xF0337)
+    readonly property string linkOff: glyph(0xF0338)
+
+    // Battery: 10% … 90% steps, then full
+    readonly property var batteryLevels: [glyph(0xF007A), glyph(0xF007B), glyph(0xF007C), glyph(0xF007D), glyph(0xF007E), glyph(0xF007F), glyph(0xF0080), glyph(0xF0081), glyph(0xF0082), glyph(0xF0079)]
+    readonly property string batteryCharging: glyph(0xF0084)
+    readonly property string batteryAlert: glyph(0xF0083)
+
+    // Misc
+    readonly property string chevronDown: glyph(0xF0140)
+    readonly property string refresh: glyph(0xF0450)
+    readonly property string check: glyph(0xF012C)
+}

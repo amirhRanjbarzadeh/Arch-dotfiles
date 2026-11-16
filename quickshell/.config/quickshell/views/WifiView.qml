@@ -1,301 +1,269 @@
-import Quickshell
+pragma ComponentBehavior: Bound
+
 import Quickshell.Networking
 import QtQuick
-import QtQuick.Effects
 import QtQuick.Controls
 import QtQuick.Layouts
-
+import "../components"
 import "../styles"
 
 Item {
     id: root
-    property var barWindow
+
     property var wifiDevice
     property var activeWifiNetwork
     signal passwordRequested(var network)
 
-    implicitWidth: 250
+    // Network name -> failure message. Kept here (not in delegates) so it survives list re-sorts.
+    property var failures: ({})
+
+    // Sorted snapshot of the network list. Re-sorted when networks appear/disappear,
+    // not on every signal-strength tick, so rows don't jump around under the cursor.
+    property var sortedNetworks: []
+
+    implicitWidth: 270
     implicitHeight: 250
 
-    onVisibleChanged: {
-        if (visible && root.wifiDevice) {
-            root.wifiDevice.scannerEnabled = true;
+    function failureText(reason) {
+        switch (reason) {
+        case ConnectionFailReason.NoSecrets:
+            return "Wrong password";
+        case ConnectionFailReason.WifiAuthTimeout:
+            return "Authentication timed out";
+        case ConnectionFailReason.WifiNetworkLost:
+            return "Network lost";
+        default:
+            return "Connection failed";
         }
     }
 
-    Rectangle {
+    function setFailure(name, message) {
+        const next = Object.assign({}, failures);
+        if (message)
+            next[name] = message;
+        else
+            delete next[name];
+        failures = next;
+    }
+
+    function resortNetworks() {
+        const networks = Array.from(wifiDevice?.networks.values ?? []).filter(network => network.name !== "");
+        networks.sort((a, b) => (b.connected - a.connected) || (b.known - a.known) || (b.signalStrength - a.signalStrength));
+        sortedNetworks = networks;
+    }
+
+    // Scan only while the panel is open; scanning in the background drains the battery.
+    function syncScanner() {
+        if (wifiDevice)
+            wifiDevice.scannerEnabled = visible;
+    }
+
+    onVisibleChanged: {
+        syncScanner();
+        if (visible)
+            resortNetworks();
+    }
+    onWifiDeviceChanged: {
+        syncScanner();
+        resortNetworks();
+    }
+    onActiveWifiNetworkChanged: resortNetworks()
+    Component.onCompleted: resortNetworks()
+
+    Connections {
+        target: root.wifiDevice?.networks ?? null
+        function onValuesChanged() {
+            root.resortNetworks();
+        }
+    }
+
+    Card {
         anchors.fill: parent
 
-        radius: 14
-        color: Theme.popupBackground
-
-        border {
-            width: 1
-            color: Theme.border
-        }
-
-        layer.enabled: true
-        layer.effect: MultiEffect {
-            shadowEnabled: true
-            shadowColor: Theme.shadow
-            shadowBlur: 0.8
-            shadowVerticalOffset: 7
-            shadowScale: 1.03
-        }
-
-        Column {
+        ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 14
+            spacing: 10
 
-            spacing: 12
-
-            // Header
-
-            Text {
-                text: "Wi-Fi Networks"
-
-                color: Theme.text
-                font.pixelSize: 13
-                font.bold: true
-            }
-
-            // Current connection
-
-            Column {
-                spacing: 4
+            // Header + current connection
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 3
 
                 Text {
-                    text: "CONNECTED TO"
-
-                    color: Theme.muted
-                    font.pixelSize: 9
-                }
-
-                Text {
-                    text: root.activeWifiNetwork ? root.activeWifiNetwork.name : "Not connected"
-
-                    color: Theme.accent
-                    font.pixelSize: 12
+                    text: "Wi-Fi"
+                    color: Theme.text
+                    font.pixelSize: 13
                     font.bold: true
                 }
 
                 Text {
-                    text: root.activeWifiNetwork ? Math.round(root.activeWifiNetwork.signalStrength * 100) + "% signal" : "No active connection"
+                    Layout.fillWidth: true
+                    text: root.activeWifiNetwork ? root.activeWifiNetwork.name : "Not connected"
+                    color: root.activeWifiNetwork ? Theme.accent : Theme.muted
+                    font.pixelSize: 12
+                    font.bold: true
+                    elide: Text.ElideRight
+                }
 
+                Text {
+                    text: root.activeWifiNetwork ? Math.round(root.activeWifiNetwork.signalStrength * 100) + "% signal" : "No active connection"
                     color: Theme.subtle
                     font.pixelSize: 10
                 }
             }
 
             Rectangle {
-                width: parent.width
-                height: 1
+                Layout.fillWidth: true
+                implicitHeight: 1
                 color: Theme.border
             }
 
-            // Available networks header + scanning indicator
-
-            Row {
-                width: parent.width
-                height: 16
+            RowLayout {
+                Layout.fillWidth: true
                 spacing: 6
 
                 Text {
+                    Layout.fillWidth: true
                     text: "AVAILABLE NETWORKS"
-
                     color: Theme.muted
                     font.pixelSize: 9
-
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-
-                Item {
-                    width: parent.width - 135
-                    height: 1
                 }
 
                 BusyIndicator {
-                    width: 15
-                    height: 15
-
+                    implicitWidth: 14
+                    implicitHeight: 14
+                    padding: 0
                     running: root.wifiDevice?.scannerEnabled ?? false
                     visible: running
                 }
             }
 
             // Network list
-
             ListView {
-                id: wifiNetworkList
+                id: networkList
 
-                width: parent.width
-                height: 125
+                Layout.fillWidth: true
+                Layout.fillHeight: true
 
                 clip: true
-                spacing: 8
+                spacing: 2
+                boundsBehavior: Flickable.StopAtBounds
+                model: root.sortedNetworks
 
-                model: root.wifiDevice ? root.wifiDevice.networks : null
-
-                delegate: Item {
-                    id: networkDelegate
+                delegate: Rectangle {
+                    id: networkRow
 
                     required property var modelData
+                    readonly property var network: modelData
+                    readonly property string failure: root.failures[network.name] ?? ""
+                    readonly property bool secured: network.security !== WifiSecurityType.Open
+                    readonly property bool canSelect: !network.connected && !network.stateChanging
 
-                    readonly property bool canSelect: !modelData.connected && !modelData.stateChanging
-
-                    property string failureMessage: ""
-
-                    width: wifiNetworkList.width
-                    height: 20
-
-                    // Listen for connection failures
+                    width: networkList.width
+                    height: 26
+                    radius: 6
+                    color: rowMouse.containsMouse && canSelect ? Theme.surface : "transparent"
 
                     Connections {
-                        target: networkDelegate.modelData
-                        ignoreUnknownSignals: true
-
+                        target: networkRow.network
                         function onConnectionFailed(reason) {
-                            networkDelegate.failureMessage = "Connection failed: " + reason;
-
-                            console.log("Connection failed:", reason);
+                            root.setFailure(networkRow.network.name, root.failureText(reason));
                         }
                     }
 
-                    // Network row visuals
-
-                    Row {
+                    RowLayout {
                         anchors.fill: parent
+                        anchors.leftMargin: 6
+                        anchors.rightMargin: 6
                         spacing: 6
 
-                        BusyIndicator {
-                            width: 16
-                            height: 16
+                        Item {
+                            implicitWidth: 16
+                            implicitHeight: 16
 
-                            anchors.verticalCenter: parent.verticalCenter
+                            BusyIndicator {
+                                anchors.fill: parent
+                                padding: 0
+                                running: networkRow.network.stateChanging
+                                visible: running
+                            }
 
-                            running: modelData.stateChanging
-                            visible: modelData.stateChanging
+                            Text {
+                                anchors.centerIn: parent
+                                visible: !networkRow.network.stateChanging
+                                text: Icons.wifiLevels[Math.min(3, Math.floor(networkRow.network.signalStrength * 4))]
+                                color: networkRow.failure !== "" ? Theme.error : networkRow.network.connected ? Theme.success : Theme.accent
+                                font.pixelSize: 14
+                            }
                         }
 
                         Text {
-                            width: 16
-
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            visible: !modelData.stateChanging
-
-                            text: modelData.connected ? "󰤨" : "󰤯"
-
-                            color: networkDelegate.failureMessage !== "" ? Theme.error : Theme.accent
-
-                            font.pixelSize: 14
-                        }
-
-                        Text {
-                            width: parent.width - 58
-
-                            anchors.verticalCenter: parent.verticalCenter
-
+                            Layout.fillWidth: true
                             text: {
-                                if (modelData.connected)
-                                    return modelData.name + "  ✓";
-
-                                if (modelData.stateChanging)
-                                    return modelData.name + "  Connecting...";
-
-                                if (networkDelegate.failureMessage !== "")
-                                    return modelData.name + "  · Failed";
-
-                                return modelData.name;
+                                if (networkRow.network.stateChanging)
+                                    return networkRow.network.name + "  · Connecting…";
+                                if (networkRow.failure !== "")
+                                    return networkRow.network.name + "  · " + networkRow.failure;
+                                return networkRow.network.name;
                             }
-
                             color: {
-                                if (modelData.connected)
+                                if (networkRow.network.connected)
                                     return Theme.success;
-
-                                if (networkDelegate.failureMessage !== "")
+                                if (networkRow.failure !== "")
                                     return Theme.error;
-
-                                if (modelData.stateChanging)
-                                    return Theme.warning;
-
-                                return Theme.text;
+                                return networkRow.network.stateChanging ? Theme.warning : Theme.text;
                             }
-
                             font.pixelSize: 11
                             elide: Text.ElideRight
-
-                            ToolTip.visible: networkDelegate.failureMessage !== ""
-
-                            ToolTip.text: networkDelegate.failureMessage
                         }
 
                         Text {
-                            width: 30
+                            visible: networkRow.network.connected
+                            text: Icons.check
+                            color: Theme.success
+                            font.pixelSize: 12
+                        }
 
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            text: Math.round(modelData.signalStrength * 100) + "%"
-
+                        Text {
+                            visible: networkRow.secured && !networkRow.network.connected
+                            text: Icons.lock
                             color: Theme.muted
                             font.pixelSize: 10
+                        }
 
+                        Text {
+                            Layout.preferredWidth: 30
+                            text: Math.round(networkRow.network.signalStrength * 100) + "%"
+                            color: Theme.muted
+                            font.pixelSize: 10
                             horizontalAlignment: Text.AlignRight
                         }
                     }
 
-                    // Individual network click handler
-
                     MouseArea {
+                        id: rowMouse
+
                         anchors.fill: parent
-
-                        enabled: networkDelegate.canSelect
-
                         hoverEnabled: true
-
-                        cursorShape: containsMouse && enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        cursorShape: networkRow.canSelect ? Qt.PointingHandCursor : Qt.ArrowCursor
 
                         onClicked: {
-                            networkDelegate.failureMessage = "";
-
-                            if (modelData.connected || modelData.stateChanging)
+                            if (!networkRow.canSelect)
                                 return;
-                            if (modelData.known || modelData.security === WifiSecurityType.Open) {
-                                modelData.connect();
-
-                                console.log("Connecting to:", modelData.name);
-                            } else {
-                                root.passwordRequested(modelData);
-
-                                console.log("Password required:", modelData.name);
-                            }
+                            root.setFailure(networkRow.network.name, "");
+                            if (networkRow.network.known || !networkRow.secured)
+                                networkRow.network.connect();
+                            else
+                                root.passwordRequested(networkRow.network);
                         }
                     }
                 }
 
-                // Empty state: scanning is finished, no networks found
-
                 Text {
                     anchors.centerIn: parent
-
-                    visible: wifiNetworkList.count === 0 && !(root.wifiDevice?.scannerEnabled ?? false)
-
-                    text: "No networks found"
-
+                    visible: networkList.count === 0
+                    text: !root.wifiDevice ? "No Wi-Fi device" : root.wifiDevice.scannerEnabled ? "Scanning for networks…" : "No networks found"
                     color: Theme.muted
-                    font.pixelSize: 11
-                }
-
-                // Loading state: scanner is active, no networks yet
-
-                Text {
-                    anchors.centerIn: parent
-
-                    visible: wifiNetworkList.count === 0 && (root.wifiDevice?.scannerEnabled ?? false)
-
-                    text: "Scanning for networks..."
-
-                    color: Theme.subtle
                     font.pixelSize: 11
                 }
             }
