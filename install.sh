@@ -36,6 +36,8 @@ packages=(
     wl-clipboard cliphist grim slurp swappy wf-recorder
     # Terminal and shell
     kitty zsh fzf zoxide eza bat ttf-jetbrains-mono-nerd
+    # Neovim (LazyVim): search, git UI, treesitter parsers, and npm for Mason's language servers
+    neovim ripgrep fd lazygit tree-sitter-cli gcc unzip curl nodejs npm
     # Login screen (only used with --sddm)
     sddm xorg-xrandr
     # Apps the keybinds open (hypr/programs.lua)
@@ -107,7 +109,7 @@ done
 # ==========================================
 
 step "Linking dotfiles"
-stow_packages=(hypr kitty quickshell zsh)
+stow_packages=(hypr kitty quickshell zsh nvim)
 cd "$here"
 # Dry run first: stow refuses to overwrite real files, and says which ones.
 if ! conflicts=$(stow -n -t "$HOME" "${stow_packages[@]}" 2>&1); then

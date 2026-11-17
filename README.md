@@ -27,6 +27,7 @@ Afterwards, put images in `~/Pictures/Wallpapers` and press <kbd>Super</kbd>+<kb
 | `quickshell/` | `~/.config/quickshell` | The bar, lock screen and their services |
 | `kitty/` | `~/.config/kitty` | Terminal |
 | `zsh/` | `~/.zshrc`, `~/.p10k.zsh` | oh-my-zsh + powerlevel10k, fzf, zoxide, eza |
+| `nvim/` | `~/.config/nvim` | [LazyVim](https://lazyvim.org), Catppuccin, QML support for the Quickshell config |
 | `sddm/` | *not stowed* | Login theme; `sddm/install.sh` builds and installs it system-wide |
 
 ### The bar
