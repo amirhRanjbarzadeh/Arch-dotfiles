@@ -42,6 +42,17 @@ QtObject {
     readonly property string sleep: glyph(0xF04B2)
     readonly property string restart: glyph(0xF0709)
 
+    // Launcher
+    readonly property string search: glyph(0xF0349)
+    readonly property string apps: glyph(0xF003B)
+    readonly property string terminal: glyph(0xF018D)
+    readonly property string enterKey: glyph(0xF0311)
+
+    // Clipboard
+    readonly property string clipboard: glyph(0xF0192)
+    readonly property string image: glyph(0xF02E9)
+    readonly property string trash: glyph(0xF01B4)
+
     // Misc
     readonly property string chevronDown: glyph(0xF0140)
     readonly property string refresh: glyph(0xF0450)

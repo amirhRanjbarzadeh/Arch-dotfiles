@@ -72,12 +72,6 @@ hl.layer_rule({
     match = { namespace = "^swaync-control-center$" },
     animation = "slide right",
 })
-
-hl.layer_rule({
-    name = "rofi-no-animation",
-    match = { namespace = "^rofi$" },
-    no_anim = true
-})
 -- Hyprland-run windowrule
 hl.window_rule({
     name  = "move-hyprland-run",

@@ -49,12 +49,16 @@ PanelWindow {
             return notificationHistoryView;
         case "power":
             return powerView;
+        case "launcher":
+            return launcherView;
+        case "clipboard":
+            return clipboardView;
         default:
             return null;
         }
     }
     // Panels you work in: they take clicks-outside-to-close and keyboard focus.
-    readonly property bool interactivePanelOpen: ["wifi", "bluetooth", "controls", "notifications", "power"].includes(activePanel)
+    readonly property bool interactivePanelOpen: ["wifi", "bluetooth", "controls", "notifications", "power", "launcher", "clipboard"].includes(activePanel)
 
     // The power menu moves the island to the middle of the screen over a dimmed backdrop.
     readonly property bool powerOpen: activePanel === "power"
@@ -325,13 +329,13 @@ PanelWindow {
     IpcHandler {
         target: "bar"
 
-        // wifi | bluetooth | controls | volume | brightness | notifications | tray
+        // wifi | bluetooth | controls | volume | brightness | notifications | power | launcher | clipboard | tray
         function toggle(panel: string): void {
             if (bar.hidden)
                 bar.setHidden(false);
             if (panel === "tray")
                 bar.setTrayVisible(!bar.trayVisible);
-            else if (["wifi", "bluetooth", "controls", "volume", "brightness", "notifications", "power"].includes(panel))
+            else if (["wifi", "bluetooth", "controls", "volume", "brightness", "notifications", "power", "launcher", "clipboard"].includes(panel))
                 bar.togglePanel(panel);
         }
 
@@ -384,7 +388,8 @@ PanelWindow {
             // The Arch glyph sits left of center in its font box.
             iconOffsetX: 1
             tooltip: "Applications"
-            onClicked: Quickshell.execDetached(["sh", "-c", "pkill -x rofi || rofi -show drun -show-icons"])
+            active: bar.activePanel === "launcher"
+            onClicked: bar.togglePanel("launcher")
         }
 
         EdgeButton {
@@ -543,6 +548,20 @@ PanelWindow {
             id: powerView
             anchors.fill: island
             visible: bar.powerOpen
+            onCloseRequested: bar.closeAll()
+        }
+
+        LauncherView {
+            id: launcherView
+            anchors.fill: island
+            visible: bar.activePanel === "launcher"
+            onCloseRequested: bar.closeAll()
+        }
+
+        ClipboardView {
+            id: clipboardView
+            anchors.fill: island
+            visible: bar.activePanel === "clipboard"
             onCloseRequested: bar.closeAll()
         }
 

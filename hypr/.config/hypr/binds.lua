@@ -95,7 +95,7 @@ hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = tr
 hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
 
 -- Clipboard
-hl.bind(mainMod .. " + SHIFT + V", hl.dsp.exec_cmd([[cliphist list | fuzzel --dmenu --prompt "clip " | cliphist decode | wl-copy]]))
+hl.bind(mainMod .. " + SHIFT + V", hl.dsp.exec_cmd("qs ipc call bar toggle clipboard"))
 
 -- Powermenu
 hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("qs ipc call bar toggle power"))
