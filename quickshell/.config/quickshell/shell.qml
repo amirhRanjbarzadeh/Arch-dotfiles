@@ -348,10 +348,16 @@ PanelWindow {
     mask: Region {
         item: bar.powerOpen ? backdrop : island
 
-        Region { item: launcherButton }
+        Region {
+            item: launcherButton
+        }
         // Only while shown, so the empty spot stays click-through.
-        Region { item: mediaIndicator.visible ? mediaIndicator : null }
-        Region { item: powerButton }
+        Region {
+            item: mediaIndicator.visible ? mediaIndicator : null
+        }
+        Region {
+            item: powerButton
+        }
     }
 
     // Clicking anywhere outside closes panels and returns from the tray page.
@@ -510,7 +516,12 @@ PanelWindow {
             opacity: bar.powerOpen ? 0.5 : 0
             visible: opacity > 0
 
-            Behavior on opacity { NumberAnimation { duration: Theme.animDuration + 100; easing.type: Easing.OutCubic } }
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Theme.animDuration + 100
+                    easing.type: Easing.OutCubic
+                }
+            }
 
             MouseArea {
                 anchors.fill: parent
@@ -530,9 +541,24 @@ PanelWindow {
             // Expanded views draw their own card.
             backgroundVisible: !bar.islandExpanded
 
-            Behavior on y { NumberAnimation { duration: Theme.animDuration + 100; easing.type: Easing.OutCubic } }
-            Behavior on width { NumberAnimation { duration: Theme.animDuration; easing.type: Easing.OutCubic } }
-            Behavior on height { NumberAnimation { duration: Theme.animDuration; easing.type: Easing.OutCubic } }
+            Behavior on y {
+                NumberAnimation {
+                    duration: Theme.animDuration + 100
+                    easing.type: Easing.OutCubic
+                }
+            }
+            Behavior on width {
+                NumberAnimation {
+                    duration: Theme.animDuration
+                    easing.type: Easing.OutCubic
+                }
+            }
+            Behavior on height {
+                NumberAnimation {
+                    duration: Theme.animDuration
+                    easing.type: Easing.OutCubic
+                }
+            }
 
             // Collapsed bar: status and tray pages stacked vertically, sliding in a clipped viewport.
             Item {
@@ -543,7 +569,11 @@ PanelWindow {
                 opacity: bar.islandExpanded ? 0 : 1
                 visible: opacity > 0
 
-                Behavior on opacity { NumberAnimation { duration: 150 } }
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 150
+                    }
+                }
 
                 // Scroll down for the tray, up for status. Children that use the
                 // wheel themselves (the volume icon) take precedence.
@@ -566,8 +596,17 @@ PanelWindow {
                     y: bar.trayVisible ? -Theme.barHeight : 0
                     opacity: bar.trayVisible ? 0 : 1
 
-                    Behavior on y { NumberAnimation { duration: Theme.animDuration; easing.type: Easing.OutCubic } }
-                    Behavior on opacity { NumberAnimation { duration: Theme.animDuration } }
+                    Behavior on y {
+                        NumberAnimation {
+                            duration: Theme.animDuration
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: Theme.animDuration
+                        }
+                    }
 
                     WorkspaceSection {
                         anchors.left: parent.left
@@ -608,7 +647,12 @@ PanelWindow {
                     y: bar.trayVisible ? 0 : Theme.barHeight
                     open: bar.trayVisible
 
-                    Behavior on y { NumberAnimation { duration: Theme.animDuration; easing.type: Easing.OutCubic } }
+                    Behavior on y {
+                        NumberAnimation {
+                            duration: Theme.animDuration
+                            easing.type: Easing.OutCubic
+                        }
+                    }
                 }
             }
         }
