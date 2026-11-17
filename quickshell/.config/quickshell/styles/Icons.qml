@@ -67,6 +67,9 @@ QtObject {
 
     // Misc
     readonly property string chevronDown: glyph(0xF0140)
+    readonly property string chevronLeft: glyph(0xF0141)
+    readonly property string chevronRight: glyph(0xF0142)
+    readonly property string calendar: glyph(0xF00ED)
     readonly property string refresh: glyph(0xF0450)
     readonly property string check: glyph(0xF012C)
     readonly property string close: glyph(0xF0156)

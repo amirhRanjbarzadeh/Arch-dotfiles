@@ -27,6 +27,7 @@ PanelWindow {
     //   "launcher", "clipboard"          search lists
     //   "media"                          now-playing panel with controls
     //   "nowplaying"                     media-key popup (compact, auto-close)
+    //   "calendar"                       month calendar (click the clock)
     //   "power"                          power menu, centered on screen
     property string activePanel: ""
     // Hidden entirely (SUPER+CTRL+B); also frees the reserved space.
@@ -60,12 +61,14 @@ PanelWindow {
         case "media":
         case "nowplaying":
             return mediaView;
+        case "calendar":
+            return calendarView;
         default:
             return null;
         }
     }
     // Panels you work in: they take clicks-outside-to-close and keyboard focus.
-    readonly property bool interactivePanelOpen: ["wifi", "bluetooth", "controls", "notifications", "power", "launcher", "clipboard", "media"].includes(activePanel)
+    readonly property bool interactivePanelOpen: ["wifi", "bluetooth", "controls", "notifications", "power", "launcher", "clipboard", "media", "calendar"].includes(activePanel)
 
     // The power menu moves the island to the middle of the screen over a dimmed backdrop.
     readonly property bool powerOpen: activePanel === "power"
@@ -342,13 +345,13 @@ PanelWindow {
     IpcHandler {
         target: "bar"
 
-        // wifi | bluetooth | controls | volume | brightness | notifications | power | launcher | clipboard | media | tray
+        // wifi | bluetooth | controls | volume | brightness | notifications | power | launcher | clipboard | media | calendar | tray
         function toggle(panel: string): void {
             if (bar.hidden)
                 bar.setHidden(false);
             if (panel === "tray")
                 bar.setTrayVisible(!bar.trayVisible);
-            else if (["wifi", "bluetooth", "controls", "volume", "brightness", "notifications", "power", "launcher", "clipboard", "media"].includes(panel))
+            else if (["wifi", "bluetooth", "controls", "volume", "brightness", "notifications", "power", "launcher", "clipboard", "media", "calendar"].includes(panel))
                 bar.togglePanel(panel);
         }
 
@@ -526,6 +529,8 @@ PanelWindow {
 
                     Clock {
                         anchors.centerIn: parent
+                        active: bar.activePanel === "calendar"
+                        onClicked: bar.togglePanel("calendar")
                     }
 
                     StatusIndicators {
@@ -611,6 +616,13 @@ PanelWindow {
             service: mediaService
             // The media-key popup is the compact card; the panel has full controls.
             compact: bar.activePanel === "nowplaying"
+        }
+
+        CalendarView {
+            id: calendarView
+            anchors.fill: island
+            visible: bar.activePanel === "calendar"
+            onCloseRequested: bar.closeAll()
         }
 
         ClipboardView {
