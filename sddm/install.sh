@@ -34,6 +34,7 @@ for font in JetBrainsMonoNerdFont-Regular.ttf JetBrainsMonoNerdFont-Bold.ttf; do
 done
 
 # Same wallpaper as hyprpaper, so logging in lands on the picture you just saw.
+# (Bundled as the fallback; after install the picker's copy in user/ takes over.)
 wallpaper=$(sed -n 's/^\s*path\s*=\s*//p' "$HOME/.config/hypr/hyprpaper.conf" 2>/dev/null | head -n1)
 wallpaper=${wallpaper/#\~/$HOME}
 if [ -f "$wallpaper" ]; then
@@ -57,6 +58,12 @@ fi
 chmod -R u=rwX,go=rX "$build"
 sudo rm -rf "$dest"
 sudo cp -r "$build" "$dest"
+
+# The quickshell wallpaper picker keeps the login screen in sync without sudo:
+# user/ is yours, and SDDM reads theme.conf.user (wallpaper + colors) through the link.
+sudo install -d -o "$USER" -g "$(id -gn)" -m 755 "$dest/user"
+sudo ln -sfn user/theme.conf.user "$dest/theme.conf.user"
+"$qs/scripts/sync-login-screen.sh" || echo "warning: couldn't sync the picked wallpaper; using the bundled one" >&2
 # Our own Xsetup, kept outside the sddm package so upgrades don't overwrite it.
 sudo install -Dm755 "$here/Xsetup" /etc/sddm/Xsetup
 printf '[Theme]\nCurrent=%s\n\n[X11]\nDisplayCommand=/etc/sddm/Xsetup\n' "$name" | sudo install -Dm644 /dev/stdin /etc/sddm.conf.d/theme.conf

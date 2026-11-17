@@ -13,6 +13,9 @@ Rectangle {
     default property alias trailing: trailingRow.data
     // Rows per PageUp/PageDown.
     property int pageSize: 7
+    // Grid views: ↑/↓ move a whole row, and ←/→ move one item while the query is
+    // empty (with text they edit it as usual). Tab always moves one item.
+    property int columns: 1
 
     signal moved(int step)
     signal accepted
@@ -61,14 +64,19 @@ Rectangle {
         Keys.onPressed: event => {
             const ctrl = event.modifiers & Qt.ControlModifier;
             const shift = event.modifiers & Qt.ShiftModifier;
-            if (event.key === Qt.Key_Down || event.key === Qt.Key_Tab || (ctrl && (event.key === Qt.Key_J || event.key === Qt.Key_N)))
+            const grid = root.columns > 1 && text === "";
+            if (event.key === Qt.Key_Down || (ctrl && (event.key === Qt.Key_J || event.key === Qt.Key_N)))
+                root.moved(root.columns);
+            else if (event.key === Qt.Key_Up || (ctrl && (event.key === Qt.Key_K || event.key === Qt.Key_P)))
+                root.moved(-root.columns);
+            else if (event.key === Qt.Key_Tab || (grid && event.key === Qt.Key_Right))
                 root.moved(1);
-            else if (event.key === Qt.Key_Up || event.key === Qt.Key_Backtab || (ctrl && (event.key === Qt.Key_K || event.key === Qt.Key_P)))
+            else if (event.key === Qt.Key_Backtab || (grid && event.key === Qt.Key_Left))
                 root.moved(-1);
             else if (event.key === Qt.Key_PageDown)
-                root.moved(root.pageSize);
+                root.moved(root.pageSize * root.columns);
             else if (event.key === Qt.Key_PageUp)
-                root.moved(-root.pageSize);
+                root.moved(-root.pageSize * root.columns);
             else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
                 root.accepted();
             else if (shift && event.key === Qt.Key_Delete)

@@ -1,5 +1,12 @@
 local c = require("colors") -- Load colors from colors.lua
 
+-- Border colors follow the wallpaper: quickshell's wallpaper picker writes
+-- wallpaper-colors.lua (gitignored) and reloads. Without it, use the static palette.
+local ok, w = pcall(require, "wallpaper-colors")
+if not ok or type(w) ~= "table" then
+    w = { accent = c.mauve, secondary = c.blue, inactive = c.surface1 }
+end
+
 hl.config({
     general = {
         gaps_in  = 5,
@@ -8,8 +15,8 @@ hl.config({
         border_size = 2,
 
         col = {
-            active_border   = { colors = {"rgba(" .. c.mauve .. "ff)", "rgba(" .. c.blue .. "ff)"}, angle = 45 },
-            inactive_border = "rgba(" .. c.surface1 .. "aa)",
+            active_border   = { colors = {"rgba(" .. w.accent .. "ff)", "rgba(" .. w.secondary .. "ff)"}, angle = 45 },
+            inactive_border = "rgba(" .. w.inactive .. "aa)",
         },
 
         -- Set to true to enable resizing windows by clicking and dragging on borders and gaps

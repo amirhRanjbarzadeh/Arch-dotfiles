@@ -100,6 +100,9 @@ hl.bind(mainMod .. " + SHIFT + V", hl.dsp.exec_cmd("qs ipc call bar toggle clipb
 -- Powermenu
 hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("qs ipc call bar toggle power"))
 
+-- Wallpaper picker (also recolors the shell and window borders)
+hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("qs ipc call bar toggle wallpaper"))
+
 -- Colour picker: click a pixel, hex goes to the clipboard
 hl.bind(mainMod .. " + SHIFT + C", hl.dsp.exec_cmd("hyprpicker -a"))
 
