@@ -408,13 +408,17 @@ Item {
                         }
                     }
 
+                    // No picture: the Arch logo, spinning in with the card (as on the login screen).
                     Text {
                         anchors.centerIn: parent
+                        // The glyph sits a bit left of center in its font box.
+                        anchors.horizontalCenterOffset: 1
                         visible: face.status !== Image.Ready
-                        text: root.lock.displayName.charAt(0).toUpperCase()
+                        text: Icons.arch
                         color: Theme.accentText
-                        font.pixelSize: 28
-                        font.bold: true
+                        font.pixelSize: 32
+                        rotation: -180 * (1 - root.ease(root.stage(root.intro, 0.35, 0.9)))
+                        scale: 0.4 + 0.6 * root.ease(root.stage(root.intro, 0.35, 0.9))
                     }
 
                     Image {
