@@ -53,6 +53,18 @@ QtObject {
     readonly property string image: glyph(0xF02E9)
     readonly property string trash: glyph(0xF01B4)
 
+    // Media
+    readonly property string music: glyph(0xF075A)
+    readonly property string play: glyph(0xF040A)
+    readonly property string pause: glyph(0xF03E4)
+    readonly property string skipNext: glyph(0xF04AD)
+    readonly property string skipPrevious: glyph(0xF04AE)
+    readonly property string shuffle: glyph(0xF049D)
+    readonly property string shuffleOff: glyph(0xF049E)
+    readonly property string repeat: glyph(0xF0456)
+    readonly property string repeatOff: glyph(0xF0457)
+    readonly property string repeatOnce: glyph(0xF0458)
+
     // Misc
     readonly property string chevronDown: glyph(0xF0140)
     readonly property string refresh: glyph(0xF0450)

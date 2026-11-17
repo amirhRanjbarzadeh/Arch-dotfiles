@@ -24,6 +24,10 @@ PanelWindow {
     //   "volume", "brightness"           key-press popups (one slider, auto-close)
     //   "notification"                   incoming notification card
     //   "notifications"                  notification history
+    //   "launcher", "clipboard"          search lists
+    //   "media"                          now-playing panel with controls
+    //   "nowplaying"                     media-key popup (compact, auto-close)
+    //   "power"                          power menu, centered on screen
     property string activePanel: ""
     // Hidden entirely (SUPER+CTRL+B); also frees the reserved space.
     property bool hidden: false
@@ -53,12 +57,15 @@ PanelWindow {
             return launcherView;
         case "clipboard":
             return clipboardView;
+        case "media":
+        case "nowplaying":
+            return mediaView;
         default:
             return null;
         }
     }
     // Panels you work in: they take clicks-outside-to-close and keyboard focus.
-    readonly property bool interactivePanelOpen: ["wifi", "bluetooth", "controls", "notifications", "power", "launcher", "clipboard"].includes(activePanel)
+    readonly property bool interactivePanelOpen: ["wifi", "bluetooth", "controls", "notifications", "power", "launcher", "clipboard", "media"].includes(activePanel)
 
     // The power menu moves the island to the middle of the screen over a dimmed backdrop.
     readonly property bool powerOpen: activePanel === "power"
@@ -134,6 +141,10 @@ PanelWindow {
         id: notificationService
     }
 
+    MediaService {
+        id: mediaService
+    }
+
     Connections {
         target: notificationService
 
@@ -179,7 +190,7 @@ PanelWindow {
         osdArmTimer.restart();
     }
 
-    // kind: "volume" or "brightness"
+    // kind: "volume", "brightness" or "nowplaying"
     function showOsd(kind) {
         // Don't hijack a panel in use (the open controls panel already shows the
         // change live). A notification is fine to interrupt: it comes back after.
@@ -206,7 +217,7 @@ PanelWindow {
     // Volume OSD and notifications auto-close, but never while the pointer is on the bar.
     function updateAutoDismiss() {
         let timeout = 0;
-        if (activePanel === "volume" || activePanel === "brightness")
+        if (activePanel === "volume" || activePanel === "brightness" || activePanel === "nowplaying")
             timeout = 3000;
         else if (activePanel === "notification")
             timeout = notificationService.timeoutFor(notificationService.current);
@@ -237,7 +248,7 @@ PanelWindow {
     Timer {
         id: autoDismissTimer
         onTriggered: {
-            if (bar.activePanel === "volume" || bar.activePanel === "brightness")
+            if (bar.activePanel === "volume" || bar.activePanel === "brightness" || bar.activePanel === "nowplaying")
                 bar.activePanel = "";
             else if (bar.activePanel === "notification")
                 notificationService.hide(notificationService.current);
@@ -310,6 +321,8 @@ PanelWindow {
         item: bar.powerOpen ? backdrop : island
 
         Region { item: launcherButton }
+        // Only while shown, so the empty spot stays click-through.
+        Region { item: mediaIndicator.visible ? mediaIndicator : null }
         Region { item: powerButton }
     }
 
@@ -329,14 +342,34 @@ PanelWindow {
     IpcHandler {
         target: "bar"
 
-        // wifi | bluetooth | controls | volume | brightness | notifications | power | launcher | clipboard | tray
+        // wifi | bluetooth | controls | volume | brightness | notifications | power | launcher | clipboard | media | tray
         function toggle(panel: string): void {
             if (bar.hidden)
                 bar.setHidden(false);
             if (panel === "tray")
                 bar.setTrayVisible(!bar.trayVisible);
-            else if (["wifi", "bluetooth", "controls", "volume", "brightness", "notifications", "power", "launcher", "clipboard"].includes(panel))
+            else if (["wifi", "bluetooth", "controls", "volume", "brightness", "notifications", "power", "launcher", "clipboard", "media"].includes(panel))
                 bar.togglePanel(panel);
+        }
+
+        // Media keys: playPause | next | previous. Acts on the player the bar
+        // shows and pops up the now-playing card.
+        function media(action: string): void {
+            if (action === "playPause")
+                mediaService.togglePlaying();
+            else if (action === "next")
+                mediaService.next();
+            else if (action === "previous")
+                mediaService.previous();
+            else
+                return;
+            nowPlaying();
+        }
+
+        // Peek at the current track without changing anything.
+        function nowPlaying(): void {
+            if (mediaService.player)
+                bar.showOsd("nowplaying");
         }
 
         function close(): void {
@@ -390,6 +423,19 @@ PanelWindow {
             tooltip: "Applications"
             active: bar.activePanel === "launcher"
             onClicked: bar.togglePanel("launcher")
+        }
+
+        // Now playing, beside the launcher button; hidden when nothing plays.
+        MediaIndicator {
+            id: mediaIndicator
+
+            x: launcherButton.x + launcherButton.width + 6
+            y: Theme.barTopMargin
+            // Never run under the island, even while it's expanded.
+            maximumWidth: Math.max(0, Math.min(300, island.x - x - 12))
+            player: mediaService.player
+            active: bar.activePanel === "media"
+            onClicked: bar.togglePanel("media")
         }
 
         EdgeButton {
@@ -556,6 +602,15 @@ PanelWindow {
             anchors.fill: island
             visible: bar.activePanel === "launcher"
             onCloseRequested: bar.closeAll()
+        }
+
+        MediaView {
+            id: mediaView
+            anchors.fill: island
+            visible: bar.activePanel === "media" || bar.activePanel === "nowplaying"
+            service: mediaService
+            // The media-key popup is the compact card; the panel has full controls.
+            compact: bar.activePanel === "nowplaying"
         }
 
         ClipboardView {
