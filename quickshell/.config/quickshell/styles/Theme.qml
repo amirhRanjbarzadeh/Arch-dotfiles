@@ -22,6 +22,8 @@ QtObject {
     readonly property int barWidth: 520
     readonly property int barHeight: 34
     readonly property int barTopMargin: 6
+    // Edge buttons' distance from the screen sides (matches Hyprland's gaps_out).
+    readonly property int edgeMargin: 10
 
     // Popups / cards
     readonly property int popupRadius: 14

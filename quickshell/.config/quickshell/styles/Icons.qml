@@ -35,6 +35,13 @@ QtObject {
     readonly property string batteryCharging: glyph(0xF0084)
     readonly property string batteryAlert: glyph(0xF0083)
 
+    // Power menu
+    readonly property string arch: glyph(0xF303)
+    readonly property string power: glyph(0xF0425)
+    readonly property string logout: glyph(0xF0343)
+    readonly property string sleep: glyph(0xF04B2)
+    readonly property string restart: glyph(0xF0709)
+
     // Misc
     readonly property string chevronDown: glyph(0xF0140)
     readonly property string refresh: glyph(0xF0450)
