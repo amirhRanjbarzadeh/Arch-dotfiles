@@ -37,7 +37,10 @@ done
 # (Bundled as the fallback; after install the picker's copy in user/ takes over.)
 wallpaper=$(sed -n 's/^\s*path\s*=\s*//p' "$HOME/.config/hypr/hyprpaper.conf" 2>/dev/null | head -n1)
 wallpaper=${wallpaper/#\~/$HOME}
-if [ -f "$wallpaper" ]; then
+# hyprpaper.conf points at the picker's "current" symlink; use the real image
+# (its name carries the extension).
+wallpaper=$(readlink -f -- "$wallpaper" 2>/dev/null || true)
+if [ -n "$wallpaper" ] && [ -f "$wallpaper" ]; then
     ext=${wallpaper##*.}
     cp "$wallpaper" "$build/background.$ext"
     sed -i "s|^background=.*|background=background.$ext|" "$build/theme.conf"
