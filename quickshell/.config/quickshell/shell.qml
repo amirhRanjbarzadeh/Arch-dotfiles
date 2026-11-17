@@ -29,6 +29,7 @@ PanelWindow {
     //   "media"                          now-playing panel with controls
     //   "nowplaying"                     media-key popup (compact, auto-close)
     //   "calendar"                       month calendar (click the clock)
+    //   "wallpaper"                      wallpaper picker (recolors the theme)
     //   "power"                          power menu, centered on screen
     property string activePanel: ""
     // Hidden entirely (SUPER+CTRL+B); also frees the reserved space.
@@ -64,12 +65,14 @@ PanelWindow {
             return mediaView;
         case "calendar":
             return calendarView;
+        case "wallpaper":
+            return wallpaperView;
         default:
             return null;
         }
     }
     // Panels you work in: they take clicks-outside-to-close and keyboard focus.
-    readonly property bool interactivePanelOpen: ["wifi", "bluetooth", "controls", "notifications", "power", "launcher", "clipboard", "media", "calendar"].includes(activePanel)
+    readonly property bool interactivePanelOpen: ["wifi", "bluetooth", "controls", "notifications", "power", "launcher", "clipboard", "media", "calendar", "wallpaper"].includes(activePanel)
 
     // The power menu moves the island to the middle of the screen over a dimmed backdrop.
     readonly property bool powerOpen: activePanel === "power"
@@ -147,6 +150,10 @@ PanelWindow {
 
     MediaService {
         id: mediaService
+    }
+
+    WallpaperService {
+        id: wallpaperService
     }
 
     // Session lock (`qs ipc call lock lock`); shares the services above.
@@ -359,13 +366,13 @@ PanelWindow {
     IpcHandler {
         target: "bar"
 
-        // wifi | bluetooth | controls | volume | brightness | notifications | power | launcher | clipboard | media | calendar | tray
+        // wifi | bluetooth | controls | volume | brightness | notifications | power | launcher | clipboard | media | calendar | wallpaper | tray
         function toggle(panel: string): void {
             if (bar.hidden)
                 bar.setHidden(false);
             if (panel === "tray")
                 bar.setTrayVisible(!bar.trayVisible);
-            else if (["wifi", "bluetooth", "controls", "volume", "brightness", "notifications", "power", "launcher", "clipboard", "media", "calendar"].includes(panel))
+            else if (["wifi", "bluetooth", "controls", "volume", "brightness", "notifications", "power", "launcher", "clipboard", "media", "calendar", "wallpaper"].includes(panel))
                 bar.togglePanel(panel);
         }
 
@@ -400,6 +407,11 @@ PanelWindow {
 
         function clearNotifications(): void {
             notificationService.clearHistory();
+        }
+
+        // Apply a wallpaper (and its colors) without opening the picker.
+        function setWallpaper(path: string): void {
+            wallpaperService.apply(path);
         }
     }
 
@@ -636,6 +648,14 @@ PanelWindow {
             id: calendarView
             anchors.fill: island
             visible: bar.activePanel === "calendar"
+            onCloseRequested: bar.closeAll()
+        }
+
+        WallpaperView {
+            id: wallpaperView
+            anchors.fill: island
+            visible: bar.activePanel === "wallpaper"
+            service: wallpaperService
             onCloseRequested: bar.closeAll()
         }
 

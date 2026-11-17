@@ -31,6 +31,18 @@ Rectangle {
     readonly property string displayName: user ? (user.realName || user.name) : ""
     readonly property string sessionName: sessions[sessionIndex] ?? ""
 
+    // Wallpaper colors from the quickshell picker: sync-login-screen.sh writes them
+    // to theme.conf.user (as "rrggbb"). Missing keys keep Theme's static palette.
+    function loadWallpaperColors() {
+        const colors = {};
+        for (const key of ["accent", "secondary", "accentText", "surface", "border", "text", "subtle", "muted"]) {
+            const value = String(config[key] ?? "");
+            if (/^[0-9a-fA-F]{6}$/.test(value))
+                colors[key] = "#" + value;
+        }
+        Theme.dynamic = colors;
+    }
+
     property string buffer: ""
     property bool checking: false
     property bool succeeded: false
@@ -192,6 +204,7 @@ Rectangle {
     }
 
     Component.onCompleted: {
+        loadWallpaperColors();
         introAnim.start();
         input.forceActiveFocus();
     }
