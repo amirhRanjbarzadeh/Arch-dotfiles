@@ -58,20 +58,6 @@ hl.window_rule({
     no_focus = true,
 })
 
--- Layer rules also return a handle.
-hl.layer_rule({
-    name  = "swaync-blur",
-    match = { namespace = "^swaync-(notification-window|control-center)$" },
-    blur = true,
-    ignore_alpha = 0.5,
-})
-
--- The control center is one layer surface, so Hyprland animates it (not swaync's CSS).
-hl.layer_rule({
-    name  = "swaync-slide",
-    match = { namespace = "^swaync-control-center$" },
-    animation = "slide right",
-})
 -- Hyprland-run windowrule
 hl.window_rule({
     name  = "move-hyprland-run",
@@ -90,26 +76,12 @@ hl.window_rule({
     move  = "monitor_w-500 monitor_h-290"
 })
 
-hl.layer_rule({
-    name  = "waybar-slide",
-    match = { namespace = "^waybar$" },
-    animation = "slide top",
-})
-
 hl.window_rule({
     name  = "float-bar-popups",
     match = { class = "^(org\\.pulseaudio\\.pavucontrol|blueman-manager|org\\.gnome\\.Settings)$" },
 
     float = true,
     size  = "700 500",
-})
-
-hl.window_rule({
-    name  = "gsimplecal-popup",
-    match = { class = "^gsimplecal$" },
-
-    float = true,
-    move  = "10 45",
 })
 
 hl.window_rule({
