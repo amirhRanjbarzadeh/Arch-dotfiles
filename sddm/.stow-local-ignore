@@ -1,0 +1,4 @@
+# System-level package: installed with install.sh, never stowed into $HOME.
+theme
+install\.sh
+Xsetup
