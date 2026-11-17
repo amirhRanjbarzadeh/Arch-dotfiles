@@ -12,6 +12,7 @@ import "../styles"
 //   - ~/.local/state/wallpaper/theme.json, which Theme follows (the whole shell recolors)
 //   - ~/.config/hypr/wallpaper-colors.lua, Hyprland's border colors (then `hyprctl reload`)
 //   - ~/.config/kitty/wallpaper-theme.conf, kitty's colors (open terminals reload on SIGUSR1)
+//   - Qt, KDE and GTK apps (qt5ct/qt6ct palettes, kdeglobals, gtk.css), via scripts/sync-app-theme.py
 //   - the SDDM login screen, via scripts/sync-login-screen.sh
 QtObject {
     id: root
@@ -322,7 +323,7 @@ QtObject {
     function apply(path) {
         const colors = paletteOf(path);
         current = path;
-        const args = [path, stateDir, hyprColorsFile, "", "", Quickshell.shellDir + "/scripts/sync-login-screen.sh", kittyThemeFile, ""];
+        const args = [path, stateDir, hyprColorsFile, "", "", Quickshell.shellDir + "/scripts/sync-login-screen.sh", kittyThemeFile, "", Quickshell.shellDir + "/scripts/sync-app-theme.py"];
         if (colors && colors.length > 0) {
             const theme = deriveTheme(colors);
             args[3] = JSON.stringify({ wallpaper: path, palette: colors.map(c => c.hex), colors: theme }, null, 2) + "\n";
@@ -332,7 +333,7 @@ QtObject {
         }
         // An image without a palette (unreadable, or still sampling) keeps the current colors.
         Quickshell.execDetached(["sh", "-c", `
-            img=$1 state=$2 hypr=$3 theme=$4 lua=$5 sync=$6 kitty=$7 kittyconf=$8
+            img=$1 state=$2 hypr=$3 theme=$4 lua=$5 sync=$6 kitty=$7 kittyconf=$8 qt=$9
             mkdir -p "$state" && ln -sfn "$img" "$state/current"
             hyprctl hyprpaper wallpaper ",$img" >/dev/null 2>&1
             # hyprpaper can stop answering requests (it still says ok); if the
@@ -346,6 +347,8 @@ QtObject {
                 printf '%s' "$lua" > "$hypr.tmp" && mv -f "$hypr.tmp" "$hypr" && hyprctl reload >/dev/null
                 # Every open kitty re-reads its config on SIGUSR1.
                 printf '%s' "$kittyconf" > "$kitty.tmp" && mv -f "$kitty.tmp" "$kitty" && pkill -USR1 -x kitty
+                # Qt, KDE and GTK apps (Dolphin, VLC, pavucontrol…), from theme.json.
+                python3 -I "$qt"
             fi
             # Login screen: same wallpaper and colors (no-op until sddm/install.sh has run).
             "$sync"`, "sh", ...args]);

@@ -27,6 +27,8 @@ Afterwards, put images in `~/Pictures/Wallpapers` and press <kbd>Super</kbd>+<kb
 | `quickshell/` | `~/.config/quickshell` | The bar, lock screen and their services |
 | `kitty/` | `~/.config/kitty` | Terminal |
 | `zsh/` | `~/.zshrc`, `~/.p10k.zsh` | oh-my-zsh + powerlevel10k, fzf, zoxide, eza |
+| `qt/` | `~/.config/qt5ct`, `qt6ct` | Qt apps (Dolphin, VLC): Breeze style, breeze-dark icons, wallpaper colors |
+| `gtk/` | `~/.config/gtk-3.0`, `gtk-4.0` | GTK apps (pavucontrol, Firefox's UI): adw-gtk3 dark, wallpaper colors |
 | `nvim/` | `~/.config/nvim` | [LazyVim](https://lazyvim.org), Catppuccin, QML support for the Quickshell config |
 | `sddm/` | *not stowed* | Login theme; `sddm/install.sh` builds and installs it system-wide |
 
@@ -48,6 +50,8 @@ Picking a wallpaper extracts its main colors and applies them everywhere at once
 - the bar and lock screen (`~/.local/state/wallpaper/theme.json`)
 - Hyprland's window borders (`hypr/wallpaper-colors.lua`, generated)
 - kitty, live in open terminals (`kitty/wallpaper-theme.conf`, generated)
+- Qt, KDE and GTK apps like Dolphin, VLC and pavucontrol (`wallpaper-colors.*` in `qt/` and
+  `gtk/`, plus `~/.config/kdeglobals`, all generated); apps already open pick it up when reopened
 - the SDDM login screen, once `--sddm` has installed it
 
 The generated files are gitignored. Until you pick a wallpaper, everything uses the static

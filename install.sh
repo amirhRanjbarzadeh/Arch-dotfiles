@@ -42,6 +42,9 @@ packages=(
     sddm xorg-xrandr
     # Apps the keybinds open (hypr/programs.lua)
     firefox dolphin
+    # Apps follow the wallpaper theme: Qt6 (Dolphin) and Qt5 (VLC) through qt6ct/qt5ct
+    # with the Breeze style, GTK through adw-gtk3
+    qt6ct qt5ct breeze breeze5 breeze-icons adw-gtk-theme
     # This script
     git stow
 )
@@ -109,7 +112,7 @@ done
 # ==========================================
 
 step "Linking dotfiles"
-stow_packages=(hypr kitty quickshell zsh nvim)
+stow_packages=(hypr kitty quickshell zsh nvim qt gtk)
 cd "$here"
 # Dry run first: stow refuses to overwrite real files, and says which ones.
 if ! conflicts=$(stow -n -t "$HOME" "${stow_packages[@]}" 2>&1); then
@@ -119,6 +122,11 @@ if ! conflicts=$(stow -n -t "$HOME" "${stow_packages[@]}" 2>&1); then
     exit 1
 fi
 stow -v -t "$HOME" "${stow_packages[@]}"
+# App colors (Qt, KDE, GTK): from the current wallpaper theme, or the static colors.
+python3 -I "$here/quickshell/.config/quickshell/scripts/sync-app-theme.py"
+# Dark GTK theme, and the dark preference Firefox, libadwaita and the portal read.
+gsettings set org.gnome.desktop.interface gtk-theme adw-gtk3-dark || true
+gsettings set org.gnome.desktop.interface color-scheme prefer-dark || true
 
 # ==========================================
 # LOGIN SCREEN (optional)
