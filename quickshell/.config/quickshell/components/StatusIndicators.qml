@@ -8,16 +8,47 @@ Row {
     property var activeWifiNetwork: null
     property var audioSink: null
     property var adapter: null
+    property bool recording: false
+    property int recordingSeconds: 0
 
     signal wifiRequested
     signal volumeRequested
     signal bluetoothRequested
+    signal recordingStopRequested
 
     readonly property var audio: audioSink?.audio ?? null
     readonly property var connectedBluetoothDevices: adapter?.devices.values.filter(device => device.connected) ?? []
     readonly property var battery: UPower.displayDevice
 
     spacing: 2
+
+    // ----------------------------------
+    // SCREEN RECORDING (only while it runs; click to stop and save)
+    // ----------------------------------
+
+    IconButton {
+        id: recordButton
+
+        anchors.verticalCenter: parent.verticalCenter
+        visible: root.recording
+
+        icon: Icons.record
+        iconColor: Theme.error
+        iconSize: 13
+        label: Math.floor(root.recordingSeconds / 60) + ":" + String(root.recordingSeconds % 60).padStart(2, "0")
+        tooltip: "Recording · click to stop"
+
+        onClicked: root.recordingStopRequested()
+
+        // Slow pulse so it reads as live.
+        SequentialAnimation on opacity {
+            running: root.recording
+            loops: Animation.Infinite
+            onStopped: recordButton.opacity = 1
+            NumberAnimation { to: 0.45; duration: 900; easing.type: Easing.InOutSine }
+            NumberAnimation { to: 1; duration: 900; easing.type: Easing.InOutSine }
+        }
+    }
 
     // ----------------------------------
     // WI-FI

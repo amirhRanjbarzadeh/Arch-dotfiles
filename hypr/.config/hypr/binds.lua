@@ -45,8 +45,8 @@ hl.bind(mainMod .. " + SHIFT + down",  hl.dsp.window.move({ direction = "down" }
 hl.bind(mainMod .. " + SHIFT + A", hl.dsp.exec_cmd([[f=~/Pictures/Screenshots/$(date +%F_%H-%M-%S).png; grim "$f" && wl-copy < "$f" && notify-send "Screenshot" "$f"]]))
 hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd([[f=~/Pictures/Screenshots/$(date +%F_%H-%M-%S).png; g=$(slurp) && grim -g "$g" "$f" && wl-copy < "$f" && notify-send "Screenshot" "$f"]]))
 
--- Toggle Extent or duplicate
-hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("~/.config/hypr/scripts/display-toggle.sh"))
+-- Mirror the laptop panel onto the external monitor, or extend (also in the bar's controls panel)
+hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("qs ipc call bar mirror"))
 
 -- Switch workspaces with mainMod + [0-9]
 -- Move active window to a workspace with mainMod + SHIFT + [0-9]
@@ -106,11 +106,11 @@ hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("qs ipc call bar toggle wallp
 -- Colour picker: click a pixel, hex goes to the clipboard
 hl.bind(mainMod .. " + SHIFT + C", hl.dsp.exec_cmd("hyprpicker -a"))
 
--- Night light toggle
-hl.bind(mainMod .. " + SHIFT + N", hl.dsp.exec_cmd("~/.config/hypr/scripts/nightlight.sh"))
+-- Night light toggle (also in the bar's controls panel)
+hl.bind(mainMod .. " + SHIFT + N", hl.dsp.exec_cmd("qs ipc call bar nightLight"))
 
--- Screen recording toggle (region)
-hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd("~/.config/hypr/scripts/recorder.sh"))
+-- Screen recording toggle: pick a region, press again (or click the bar's red dot) to stop
+hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd("qs ipc call bar record"))
 
 -- Region screenshot → annotate in swappy
 hl.bind(mainMod .. " + SHIFT + E", hl.dsp.exec_cmd([[g=$(slurp) && grim -g "$g" - | swappy -f -]]))

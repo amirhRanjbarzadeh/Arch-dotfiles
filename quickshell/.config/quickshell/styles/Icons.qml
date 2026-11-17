@@ -24,6 +24,11 @@ QtObject {
     // Brightness: low, medium, high
     readonly property var brightnessLevels: [glyph(0xF00DE), glyph(0xF00DF), glyph(0xF00E0)]
 
+    // Screen tools
+    readonly property string record: glyph(0xF044A)
+    readonly property string nightLight: glyph(0xF0594)
+    readonly property string monitor: glyph(0xF0379)
+
     // Bluetooth
     readonly property string bluetooth: glyph(0xF00AF)
     readonly property string bluetoothConnected: glyph(0xF00B1)

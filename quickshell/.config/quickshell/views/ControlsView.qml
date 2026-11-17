@@ -4,14 +4,19 @@ import "../components"
 import "../styles"
 
 // Sound & display sliders. Shows one row as a key-press popup (volume or
-// brightness keys) or both when opened from the volume icon.
+// brightness keys) or both, plus the screen tools, when opened from the volume icon.
 Item {
     id: root
 
     property var audioSink
     property var brightness // BrightnessService
+    property var screenTools // ScreenService
     property bool showVolume: true
     property bool showBrightness: true
+    property bool showTools: true
+
+    // Recording starts with a region pick, so the panel has to get out of the way first.
+    signal recordRequested
 
     readonly property var audio: audioSink?.audio ?? null
 
@@ -65,6 +70,49 @@ Item {
                 minimumValue: root.brightness?.minimum ?? 0
 
                 onMoved: value => root.brightness.setBrightness(value)
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: 1
+                visible: root.showTools
+                color: Theme.border
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                visible: root.showTools
+                spacing: 2
+
+                ToggleRow {
+                    Layout.fillWidth: true
+                    icon: Icons.nightLight
+                    title: "Night light"
+                    detail: root.screenTools?.nightLightAvailable ? (root.screenTools?.nightLight ? "Warm, " + root.screenTools.warmTemperature + "K" : "Off") : "Install hyprsunset"
+                    enabled: root.screenTools?.nightLightAvailable ?? false
+                    checked: root.screenTools?.nightLight ?? false
+                    onToggled: root.screenTools.toggleNightLight(false)
+                }
+
+                ToggleRow {
+                    Layout.fillWidth: true
+                    visible: root.screenTools?.canMirror ?? false
+                    icon: Icons.monitor
+                    title: "Mirror display"
+                    detail: (root.screenTools?.mirrored ? "Mirroring to " : "Extended to ") + (root.screenTools?.externalMonitor ?? "")
+                    checked: root.screenTools?.mirrored ?? false
+                    onToggled: root.screenTools.toggleMirror(false)
+                }
+
+                ToggleRow {
+                    Layout.fillWidth: true
+                    icon: Icons.record
+                    title: "Record screen"
+                    detail: root.screenTools?.recording ? "Recording · click to stop" : "Pick a region"
+                    activeColor: Theme.error
+                    checked: root.screenTools?.recording ?? false
+                    onToggled: root.screenTools?.recording ? root.screenTools.toggleRecording() : root.recordRequested()
+                }
             }
         }
     }

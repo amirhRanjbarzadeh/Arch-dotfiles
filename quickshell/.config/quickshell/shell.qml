@@ -156,6 +156,10 @@ PanelWindow {
         id: wallpaperService
     }
 
+    ScreenService {
+        id: screenService
+    }
+
     // Session lock (`qs ipc call lock lock`); shares the services above.
     LockScreen {
         id: lockScreen
@@ -413,6 +417,24 @@ PanelWindow {
         function setWallpaper(path: string): void {
             wallpaperService.apply(path);
         }
+
+        // Screen tools (SUPER+SHIFT+R, SUPER+SHIFT+N, SUPER+P). Key presses get a
+        // notification; the same toggles in the controls panel don't need one.
+
+        // Pick a region and start recording; again to stop and save.
+        function record(): void {
+            bar.closeAll();
+            screenService.toggleRecording();
+        }
+
+        function nightLight(): void {
+            screenService.toggleNightLight(true);
+        }
+
+        // Mirror the laptop panel onto the external monitor, or go back to extending.
+        function mirror(): void {
+            screenService.toggleMirror(true);
+        }
     }
 
     Shortcut {
@@ -567,10 +589,13 @@ PanelWindow {
                         activeWifiNetwork: networkService.activeWifiNetwork
                         audioSink: audioService.sink
                         adapter: bluetoothService.adapter
+                        recording: screenService.recording
+                        recordingSeconds: screenService.recordingSeconds
 
                         onWifiRequested: bar.togglePanel("wifi")
                         onVolumeRequested: bar.togglePanel("controls")
                         onBluetoothRequested: bar.togglePanel("bluetooth")
+                        onRecordingStopRequested: screenService.toggleRecording()
                     }
                 }
 
@@ -672,9 +697,15 @@ PanelWindow {
             visible: bar.activePanel === "volume" || bar.activePanel === "brightness" || bar.activePanel === "controls"
             audioSink: audioService.sink
             brightness: brightnessService
-            // Key-press popups show only the slider that changed; the panel shows both.
+            screenTools: screenService
+            // Key-press popups show only the slider that changed; the panel shows both, and the screen tools.
             showVolume: bar.activePanel !== "brightness"
             showBrightness: bar.activePanel !== "volume"
+            showTools: bar.activePanel === "controls"
+            onRecordRequested: {
+                bar.closeAll();
+                screenService.toggleRecording();
+            }
         }
     }
 
