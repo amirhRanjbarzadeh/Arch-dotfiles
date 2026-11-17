@@ -1,3 +1,5 @@
+import Quickshell.Hyprland
+import Quickshell.Io
 import Quickshell.Services.UPower
 import QtQuick
 import "../styles"
@@ -47,6 +49,58 @@ Row {
             onStopped: recordButton.opacity = 1
             NumberAnimation { to: 0.45; duration: 900; easing.type: Easing.InOutSine }
             NumberAnimation { to: 1; duration: 900; easing.type: Easing.InOutSine }
+        }
+    }
+
+    // ----------------------------------
+    // KEYBOARD LAYOUT (click to switch)
+    // ----------------------------------
+
+    IconButton {
+        id: layoutButton
+
+        property string layoutName: ""
+
+        function shortName(name) {
+            const known = { "English (US)": "EN", "Persian": "FA" };
+            return known[name] ?? name.slice(0, 2).toUpperCase();
+        }
+
+        anchors.verticalCenter: parent.verticalCenter
+        visible: layoutName !== ""
+
+        icon: shortName(layoutName)
+        iconSize: 11
+        iconColor: layoutName === "English (US)" ? Theme.text : Theme.accent
+        tooltip: layoutName + " · click or Alt+Shift to switch"
+
+        onClicked: switchProc.exec(["hyprctl", "switchxkblayout", "all", "next"])
+
+        // Seed from the main keyboard; after that, Hyprland's activelayout events.
+        Process {
+            running: true
+            command: ["hyprctl", "devices", "-j"]
+            stdout: StdioCollector {
+                onStreamFinished: {
+                    try {
+                        const keyboards = JSON.parse(text).keyboards;
+                        const main = keyboards.find(keyboard => keyboard.main) ?? keyboards[0];
+                        if (main)
+                            layoutButton.layoutName = main.active_keymap;
+                    } catch (e) {}
+                }
+            }
+        }
+
+        Process { id: switchProc }
+
+        Connections {
+            target: Hyprland
+            // data is "<keyboard>,<layout name>"
+            function onRawEvent(event) {
+                if (event.name === "activelayout")
+                    layoutButton.layoutName = event.data.slice(event.data.indexOf(",") + 1);
+            }
         }
     }
 
