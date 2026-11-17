@@ -13,6 +13,7 @@ QtObject {
     readonly property string wifiOutline: glyph(0xF092F)
     readonly property var wifiLevels: [glyph(0xF091F), glyph(0xF0922), glyph(0xF0925), glyph(0xF0928)]
     readonly property string lock: glyph(0xF033E)
+    readonly property string lockOpen: glyph(0xF033F)
 
     // Audio
     readonly property string volumeMute: glyph(0xF0581)

@@ -8,6 +8,7 @@ import Quickshell.Wayland
 import QtQuick
 
 import "components"
+import "lock"
 import "services"
 import "styles"
 import "views"
@@ -146,6 +147,19 @@ PanelWindow {
 
     MediaService {
         id: mediaService
+    }
+
+    // Session lock (`qs ipc call lock lock`); shares the services above.
+    LockScreen {
+        id: lockScreen
+        media: mediaService
+        network: networkService
+        notifications: notificationService
+        // Start from a clean bar, so the snapshot (and the bar after unlock) has no panel open.
+        onPreparingChanged: {
+            if (preparing)
+                bar.closeAll();
+        }
     }
 
     Connections {
