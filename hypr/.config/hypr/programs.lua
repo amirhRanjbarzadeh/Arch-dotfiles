@@ -2,7 +2,7 @@ return {
     mainMod     = "SUPER",
     terminal    = "kitty",
     fileManager = "dolphin",
-    menu        = "rofi -show drun -show-icons",
+    menu        = "qs ipc call bar toggle launcher",
     browser     = "firefox",
     editor      = "code"
 }

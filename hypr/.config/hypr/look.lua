@@ -98,6 +98,8 @@ hl.config({
         force_default_wallpaper = 0,   
         disable_hyprland_logo   = true,
         focus_on_activate       = true,
+        -- Let a restarted quickshell take over the lock if it crashed while locked.
+        allow_session_lock_restore = true,
     },
 })
 

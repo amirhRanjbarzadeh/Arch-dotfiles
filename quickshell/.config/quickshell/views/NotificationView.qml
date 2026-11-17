@@ -1,8 +1,6 @@
 pragma ComponentBehavior: Bound
 
-import Quickshell
 import Quickshell.Services.Notifications
-import Quickshell.Widgets
 import QtQuick
 import QtQuick.Layouts
 import "../components"
@@ -18,28 +16,6 @@ Item {
 
     readonly property bool critical: notification?.urgency === NotificationUrgency.Critical
     readonly property var buttons: (notification?.actions ?? []).filter(action => action.identifier !== "default" && action.text !== "")
-
-    // Inline image (avatars, screenshots) wins; then the app icon, desktop entry and app name.
-    // Theme icon names are checked so a missing icon falls through instead of
-    // rendering the checkerboard "missing" texture.
-    function resolveIcon(icon) {
-        if (!icon)
-            return "";
-        if (icon.startsWith("image://icon/"))
-            icon = icon.slice("image://icon/".length);
-        else if (icon.startsWith("/"))
-            return "file://" + icon;
-        else if (icon.includes("://"))
-            return icon;
-        return Quickshell.iconPath(icon, true);
-    }
-
-    readonly property string iconSource: {
-        const n = notification;
-        if (!n)
-            return "";
-        return resolveIcon(n.image) || resolveIcon(n.appIcon) || resolveIcon(n.desktopEntry) || resolveIcon(n.appName.toLowerCase());
-    }
 
     implicitWidth: 380
     implicitHeight: content.implicitHeight + 2 * card.padding
@@ -85,32 +61,10 @@ Item {
             anchors.top: parent.top
             spacing: 12
 
-            // Icon / image
-            ClippingRectangle {
+            NotificationIcon {
                 Layout.alignment: Qt.AlignTop
-                implicitWidth: 40
-                implicitHeight: 40
-                radius: 10
-                color: Theme.surface
-
-                Image {
-                    id: iconImage
-                    anchors.fill: parent
-                    source: root.iconSource
-                    sourceSize.width: 80
-                    sourceSize.height: 80
-                    fillMode: Image.PreserveAspectCrop
-                    asynchronous: true
-                    visible: status === Image.Ready
-                }
-
-                Text {
-                    anchors.centerIn: parent
-                    visible: !iconImage.visible
-                    text: Icons.bell
-                    color: root.critical ? Theme.error : Theme.accent
-                    font.pixelSize: 20
-                }
+                notification: root.notification
+                critical: root.critical
             }
 
             ColumnLayout {

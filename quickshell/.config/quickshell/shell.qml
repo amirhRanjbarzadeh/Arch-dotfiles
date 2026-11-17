@@ -8,6 +8,7 @@ import Quickshell.Wayland
 import QtQuick
 
 import "components"
+import "lock"
 import "services"
 import "styles"
 import "views"
@@ -23,7 +24,15 @@ PanelWindow {
     //   "wifi", "bluetooth", "controls"  interactive panels you open by clicking
     //   "volume", "brightness"           key-press popups (one slider, auto-close)
     //   "notification"                   incoming notification card
+    //   "notifications"                  notification history
+    //   "launcher", "clipboard"          search lists
+    //   "media"                          now-playing panel with controls
+    //   "nowplaying"                     media-key popup (compact, auto-close)
+    //   "calendar"                       month calendar (click the clock)
+    //   "power"                          power menu, centered on screen
     property string activePanel: ""
+    // Hidden entirely (SUPER+CTRL+B); also frees the reserved space.
+    property bool hidden: false
     // The collapsed bar has two pages: status (false) and system tray (true).
     // Scroll down on the bar for the tray, scroll up to come back.
     property bool trayVisible: false
@@ -42,20 +51,33 @@ PanelWindow {
             return controlsView;
         case "notification":
             return notificationView;
+        case "notifications":
+            return notificationHistoryView;
+        case "power":
+            return powerView;
+        case "launcher":
+            return launcherView;
+        case "clipboard":
+            return clipboardView;
+        case "media":
+        case "nowplaying":
+            return mediaView;
+        case "calendar":
+            return calendarView;
         default:
             return null;
         }
     }
     // Panels you work in: they take clicks-outside-to-close and keyboard focus.
-    readonly property bool interactivePanelOpen: activePanel === "wifi" || activePanel === "bluetooth" || activePanel === "controls"
+    readonly property bool interactivePanelOpen: ["wifi", "bluetooth", "controls", "notifications", "power", "launcher", "clipboard", "media", "calendar"].includes(activePanel)
+
+    // The power menu moves the island to the middle of the screen over a dimmed backdrop.
+    readonly property bool powerOpen: activePanel === "power"
+    readonly property int screenHeight: screen?.height ?? 1080
 
     // Each view owns its size; the island just morphs to fit it.
     readonly property int islandWidth: activeView ? activeView.implicitWidth : Theme.barWidth
     readonly property int islandHeight: activeView ? activeView.implicitHeight : Theme.barHeight
-
-    // Extra transparent room below expanded views so their drop shadow isn't clipped.
-    // Input there is masked out, so it never blocks clicks on windows underneath.
-    readonly property int shadowPadding: 24
 
     function togglePanel(name) {
         activePanel = activePanel === name ? "" : name;
@@ -68,16 +90,26 @@ PanelWindow {
     }
 
     function closeAll() {
-        // Closing a notification card means dismissing that notification.
+        // Closing a notification card stops showing it; it stays in history.
         if (activePanel === "notification")
-            notificationService.current?.dismiss();
+            notificationService.hide(notificationService.current);
         activePanel = "";
         trayVisible = false;
     }
 
+    function setHidden(hide) {
+        if (hide)
+            closeAll();
+        hidden = hide;
+    }
+
+    visible: !hidden
+
     onActivePanelChanged: {
         if (islandExpanded)
             trayVisible = false;
+        if (activePanel === "notifications")
+            notificationService.markSeen();
         if (activePanel !== "wifi")
             selectedWifiNetwork = null;
         // Island freed up: show any notification that was waiting.
@@ -113,11 +145,34 @@ PanelWindow {
         id: notificationService
     }
 
+    MediaService {
+        id: mediaService
+    }
+
+    // Session lock (`qs ipc call lock lock`); shares the services above.
+    LockScreen {
+        id: lockScreen
+        media: mediaService
+        network: networkService
+        notifications: notificationService
+        // Start from a clean bar, so the snapshot (and the bar after unlock) has no panel open.
+        onPreparingChanged: {
+            if (preparing)
+                bar.closeAll();
+        }
+    }
+
     Connections {
         target: notificationService
 
         function onCurrentChanged() {
             bar.showNotification();
+        }
+
+        // Arrivals while history is open show up in its list instead of popping up.
+        function onQueueChanged() {
+            if (bar.activePanel === "notifications")
+                notificationService.markSeen();
         }
 
         // Replaced content (e.g. progress updates) restarts the countdown.
@@ -152,7 +207,7 @@ PanelWindow {
         osdArmTimer.restart();
     }
 
-    // kind: "volume" or "brightness"
+    // kind: "volume", "brightness" or "nowplaying"
     function showOsd(kind) {
         // Don't hijack a panel in use (the open controls panel already shows the
         // change live). A notification is fine to interrupt: it comes back after.
@@ -179,7 +234,7 @@ PanelWindow {
     // Volume OSD and notifications auto-close, but never while the pointer is on the bar.
     function updateAutoDismiss() {
         let timeout = 0;
-        if (activePanel === "volume" || activePanel === "brightness")
+        if (activePanel === "volume" || activePanel === "brightness" || activePanel === "nowplaying")
             timeout = 3000;
         else if (activePanel === "notification")
             timeout = notificationService.timeoutFor(notificationService.current);
@@ -210,10 +265,10 @@ PanelWindow {
     Timer {
         id: autoDismissTimer
         onTriggered: {
-            if (bar.activePanel === "volume" || bar.activePanel === "brightness")
+            if (bar.activePanel === "volume" || bar.activePanel === "brightness" || bar.activePanel === "nowplaying")
                 bar.activePanel = "";
             else if (bar.activePanel === "notification")
-                notificationService.current?.expire();
+                notificationService.hide(notificationService.current);
         }
     }
 
@@ -255,16 +310,19 @@ PanelWindow {
     // WINDOW
     // ==========================================
 
+    // Covers the whole screen, always: panels, shadows and the power menu's
+    // backdrop all fit without the window ever resizing. (Resizing mid-animation
+    // swaps buffers, which made the edge buttons flicker and the island jump.)
+    // The mask keeps everything but the island and edge buttons click-through;
+    // the gap above the bar is the island's own y offset.
     anchors.top: true
-    margins.top: Theme.barTopMargin
+    anchors.left: true
+    anchors.right: true
+    implicitHeight: screenHeight
 
-    implicitWidth: Theme.barWidth
-    // Grow instantly when expanding; follow the island's animation when collapsing.
-    implicitHeight: Math.max(islandExpanded ? islandHeight + shadowPadding : 0, island.height + (island.height > Theme.barHeight ? shadowPadding : 0))
-
-    // Reserve only the collapsed bar height so expanding the island doesn't
-    // shrink the tiled area in Hyprland.
-    exclusiveZone: Theme.barHeight
+    // Reserve only the collapsed bar (and the gap above it) so expanding the
+    // island doesn't shrink the tiled area in Hyprland.
+    exclusiveZone: Theme.barTopMargin + Theme.barHeight
     color: "transparent"
 
     WlrLayershell.namespace: "quickshell:bar"
@@ -273,9 +331,16 @@ PanelWindow {
     // rendering. Key-press popups stay None so they never steal focus from your app.
     WlrLayershell.keyboardFocus: interactivePanelOpen || trayVisible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
-    // Only the island accepts input; the transparent rest of the window is click-through.
+    // Only the island and edge buttons accept input; the transparent rest of the
+    // window is click-through. With the power menu up, the backdrop takes clicks
+    // too (to close it).
     mask: Region {
-        item: island
+        item: bar.powerOpen ? backdrop : island
+
+        Region { item: launcherButton }
+        // Only while shown, so the empty spot stays click-through.
+        Region { item: mediaIndicator.visible ? mediaIndicator : null }
+        Region { item: powerButton }
     }
 
     // Clicking anywhere outside closes panels and returns from the tray page.
@@ -294,15 +359,47 @@ PanelWindow {
     IpcHandler {
         target: "bar"
 
+        // wifi | bluetooth | controls | volume | brightness | notifications | power | launcher | clipboard | media | calendar | tray
         function toggle(panel: string): void {
+            if (bar.hidden)
+                bar.setHidden(false);
             if (panel === "tray")
                 bar.setTrayVisible(!bar.trayVisible);
-            else if (["wifi", "bluetooth", "controls", "volume", "brightness"].includes(panel))
+            else if (["wifi", "bluetooth", "controls", "volume", "brightness", "notifications", "power", "launcher", "clipboard", "media", "calendar"].includes(panel))
                 bar.togglePanel(panel);
+        }
+
+        // Media keys: playPause | next | previous. Acts on the player the bar
+        // shows and pops up the now-playing card.
+        function media(action: string): void {
+            if (action === "playPause")
+                mediaService.togglePlaying();
+            else if (action === "next")
+                mediaService.next();
+            else if (action === "previous")
+                mediaService.previous();
+            else
+                return;
+            nowPlaying();
+        }
+
+        // Peek at the current track without changing anything.
+        function nowPlaying(): void {
+            if (mediaService.player)
+                bar.showOsd("nowplaying");
         }
 
         function close(): void {
             bar.closeAll();
+        }
+
+        // Hide or show the whole bar.
+        function toggleHidden(): void {
+            bar.setHidden(!bar.hidden);
+        }
+
+        function clearNotifications(): void {
+            notificationService.clearHistory();
         }
     }
 
@@ -327,16 +424,79 @@ PanelWindow {
             }
         }
 
+        // Edge buttons, outside the island and in line with the window gaps.
+        // The backdrop covers them while the power menu is up.
+
+        EdgeButton {
+            id: launcherButton
+
+            x: Theme.edgeMargin
+            y: Theme.barTopMargin
+            icon: Icons.arch
+            iconColor: Theme.accent
+            iconSize: 17
+            // The Arch glyph sits left of center in its font box.
+            iconOffsetX: 1
+            tooltip: "Applications"
+            active: bar.activePanel === "launcher"
+            onClicked: bar.togglePanel("launcher")
+        }
+
+        // Now playing, beside the launcher button; hidden when nothing plays.
+        MediaIndicator {
+            id: mediaIndicator
+
+            x: launcherButton.x + launcherButton.width + 6
+            y: Theme.barTopMargin
+            // Never run under the island, even while it's expanded.
+            maximumWidth: Math.max(0, Math.min(300, island.x - x - 12))
+            player: mediaService.player
+            active: bar.activePanel === "media"
+            onClicked: bar.togglePanel("media")
+        }
+
+        EdgeButton {
+            id: powerButton
+
+            x: parent.width - width - Theme.edgeMargin
+            y: Theme.barTopMargin
+            icon: Icons.power
+            iconColor: Theme.error
+            tooltip: "Power"
+            active: bar.powerOpen
+            onClicked: bar.togglePanel("power")
+        }
+
+        // Dims the screen behind the power menu; clicking it closes the menu.
+        Rectangle {
+            id: backdrop
+
+            anchors.fill: parent
+            color: "#000000"
+            opacity: bar.powerOpen ? 0.5 : 0
+            visible: opacity > 0
+
+            Behavior on opacity { NumberAnimation { duration: Theme.animDuration + 100; easing.type: Easing.OutCubic } }
+
+            MouseArea {
+                anchors.fill: parent
+                enabled: bar.powerOpen
+                onClicked: bar.closeAll()
+            }
+        }
+
         Island {
             id: island
 
             anchors.horizontalCenter: parent.horizontalCenter
-            anchors.top: parent.top
+            // Glides down to the middle of the screen for the power menu.
+            y: bar.powerOpen ? Math.round((bar.screenHeight - bar.islandHeight) / 2) : Theme.barTopMargin
             width: bar.islandWidth
             height: bar.islandHeight
             // Expanded views draw their own card.
             backgroundVisible: !bar.islandExpanded
 
+            Behavior on y { NumberAnimation { duration: Theme.animDuration + 100; easing.type: Easing.OutCubic } }
             Behavior on width { NumberAnimation { duration: Theme.animDuration; easing.type: Easing.OutCubic } }
             Behavior on height { NumberAnimation { duration: Theme.animDuration; easing.type: Easing.OutCubic } }
 
@@ -383,6 +543,8 @@ PanelWindow {
 
                     Clock {
                         anchors.centerIn: parent
+                        active: bar.activePanel === "calendar"
+                        onClicked: bar.togglePanel("calendar")
                     }
 
                     StatusIndicators {
@@ -440,6 +602,50 @@ PanelWindow {
             pendingCount: Math.max(0, notificationService.queue.length - 1)
         }
 
+        NotificationHistoryView {
+            id: notificationHistoryView
+            anchors.fill: island
+            visible: bar.activePanel === "notifications"
+            service: notificationService
+        }
+
+        PowerView {
+            id: powerView
+            anchors.fill: island
+            visible: bar.powerOpen
+            onCloseRequested: bar.closeAll()
+        }
+
+        LauncherView {
+            id: launcherView
+            anchors.fill: island
+            visible: bar.activePanel === "launcher"
+            onCloseRequested: bar.closeAll()
+        }
+
+        MediaView {
+            id: mediaView
+            anchors.fill: island
+            visible: bar.activePanel === "media" || bar.activePanel === "nowplaying"
+            service: mediaService
+            // The media-key popup is the compact card; the panel has full controls.
+            compact: bar.activePanel === "nowplaying"
+        }
+
+        CalendarView {
+            id: calendarView
+            anchors.fill: island
+            visible: bar.activePanel === "calendar"
+            onCloseRequested: bar.closeAll()
+        }
+
+        ClipboardView {
+            id: clipboardView
+            anchors.fill: island
+            visible: bar.activePanel === "clipboard"
+            onCloseRequested: bar.closeAll()
+        }
+
         ControlsView {
             id: controlsView
             anchors.fill: island
@@ -457,7 +663,7 @@ PanelWindow {
 
         anchor.window: bar
         anchor.rect.x: (bar.width - width) / 2
-        anchor.rect.y: island.height + 10
+        anchor.rect.y: island.y + island.height + 10
 
         selectedWifiNetwork: bar.selectedWifiNetwork
         onCancelRequested: bar.selectedWifiNetwork = null

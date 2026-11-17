@@ -11,15 +11,19 @@ local closeWindowBind = hl.bind(mainMod .. " + W", hl.dsp.window.close())
 
 -- closeWindowBind:set_enabled(false)
 hl.bind(mainMod .. " + M", hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"))
-hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("pkill waybar && waybar"))
+-- Restart the quickshell bar
+hl.bind(mainMod .. " + R", hl.dsp.exec_cmd("qs kill -p ~/.config/quickshell/shell.qml; qs -d -n -p ~/.config/quickshell/shell.qml"))
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("loginctl lock-session"))
-hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("swaync-client -t -sw"))
+-- Notification history (CTRL clears it)
+hl.bind(mainMod .. " + N", hl.dsp.exec_cmd("qs ipc call bar toggle notifications"))
+hl.bind(mainMod .. " + CTRL + N", hl.dsp.exec_cmd("qs ipc call bar clearNotifications"))
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + D", hl.dsp.exec_cmd(menu))
 hl.bind(mainMod .. " + J", hl.dsp.layout("togglesplit"))    -- dwindle only
 hl.bind(mainMod .. " + SHIFT + P", hl.dsp.window.pseudo())
-hl.bind(mainMod .. " + CTRL + B", hl.dsp.exec_cmd("pkill -USR1 waybar"))
+-- Hide/show the bar
+hl.bind(mainMod .. " + CTRL + B", hl.dsp.exec_cmd("qs ipc call bar toggleHidden"))
 
 -- Apps keybinds
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(p.browser))
@@ -84,17 +88,17 @@ hl.bind("XF86AudioMicMute",     hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_S
 hl.bind("XF86MonBrightnessUp",  hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"),                  { locked = true, repeating = true })
 hl.bind("XF86MonBrightnessDown",hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"),                  { locked = true, repeating = true })
 
--- Requires playerctl
-hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = true })
-hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
-hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
-hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
+-- Media keys: control the player shown in the bar and pop up the now-playing card
+hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("qs ipc call bar media next"),      { locked = true })
+hl.bind("XF86AudioPause", hl.dsp.exec_cmd("qs ipc call bar media playPause"), { locked = true })
+hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("qs ipc call bar media playPause"), { locked = true })
+hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("qs ipc call bar media previous"),  { locked = true })
 
 -- Clipboard
-hl.bind(mainMod .. " + SHIFT + V", hl.dsp.exec_cmd([[cliphist list | fuzzel --dmenu --prompt "clip " | cliphist decode | wl-copy]]))
+hl.bind(mainMod .. " + SHIFT + V", hl.dsp.exec_cmd("qs ipc call bar toggle clipboard"))
 
 -- Powermenu
-hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("~/.config/hypr/scripts/power-menu.sh"))
+hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("qs ipc call bar toggle power"))
 
 -- Colour picker: click a pixel, hex goes to the clipboard
 hl.bind(mainMod .. " + SHIFT + C", hl.dsp.exec_cmd("hyprpicker -a"))

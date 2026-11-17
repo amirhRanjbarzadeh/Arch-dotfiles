@@ -13,6 +13,7 @@ QtObject {
     readonly property string wifiOutline: glyph(0xF092F)
     readonly property var wifiLevels: [glyph(0xF091F), glyph(0xF0922), glyph(0xF0925), glyph(0xF0928)]
     readonly property string lock: glyph(0xF033E)
+    readonly property string lockOpen: glyph(0xF033F)
 
     // Audio
     readonly property string volumeMute: glyph(0xF0581)
@@ -35,8 +36,41 @@ QtObject {
     readonly property string batteryCharging: glyph(0xF0084)
     readonly property string batteryAlert: glyph(0xF0083)
 
+    // Power menu
+    readonly property string arch: glyph(0xF303)
+    readonly property string power: glyph(0xF0425)
+    readonly property string logout: glyph(0xF0343)
+    readonly property string sleep: glyph(0xF04B2)
+    readonly property string restart: glyph(0xF0709)
+
+    // Launcher
+    readonly property string search: glyph(0xF0349)
+    readonly property string apps: glyph(0xF003B)
+    readonly property string terminal: glyph(0xF018D)
+    readonly property string enterKey: glyph(0xF0311)
+
+    // Clipboard
+    readonly property string clipboard: glyph(0xF0192)
+    readonly property string image: glyph(0xF02E9)
+    readonly property string trash: glyph(0xF01B4)
+
+    // Media
+    readonly property string music: glyph(0xF075A)
+    readonly property string play: glyph(0xF040A)
+    readonly property string pause: glyph(0xF03E4)
+    readonly property string skipNext: glyph(0xF04AD)
+    readonly property string skipPrevious: glyph(0xF04AE)
+    readonly property string shuffle: glyph(0xF049D)
+    readonly property string shuffleOff: glyph(0xF049E)
+    readonly property string repeat: glyph(0xF0456)
+    readonly property string repeatOff: glyph(0xF0457)
+    readonly property string repeatOnce: glyph(0xF0458)
+
     // Misc
     readonly property string chevronDown: glyph(0xF0140)
+    readonly property string chevronLeft: glyph(0xF0141)
+    readonly property string chevronRight: glyph(0xF0142)
+    readonly property string calendar: glyph(0xF00ED)
     readonly property string refresh: glyph(0xF0450)
     readonly property string check: glyph(0xF012C)
     readonly property string close: glyph(0xF0156)

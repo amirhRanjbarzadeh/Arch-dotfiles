@@ -1,0 +1,7 @@
+#!/bin/sh
+# Run as root by SDDM before the login screen appears (installed by install.sh).
+# The laptop panel flickers at 144 Hz, so run it at 60 Hz like Hyprland does
+# (hypr/monitors.lua). SDDM's X server would otherwise pick the panel's preferred 144 Hz.
+for output in $(xrandr --query | awk '/^eDP[-0-9]* connected/ { print $1 }'); do
+    xrandr --output "$output" --mode 1920x1080 --rate 60
+done
