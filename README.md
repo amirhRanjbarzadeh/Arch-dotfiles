@@ -36,8 +36,8 @@ Afterwards, put images in `~/Pictures/Wallpapers` and press <kbd>Super</kbd>+<kb
 
 Everything opens in the island at the top of the screen:
 
-- **Status:** workspaces, clock (click for a calendar), Wi-Fi, Bluetooth, volume (scroll to change), battery, and a red recording timer while recording (click to stop). Scroll down on the bar for the system tray.
-- **Panels:** Wi-Fi, Bluetooth, controls (volume, brightness, night light, display mirroring, screen recording), notification history, media player, app launcher, clipboard history, wallpaper picker, power menu.
+- **Status:** workspaces, clock (click for a calendar), Wi-Fi, Bluetooth, volume (scroll to change), battery, a red recording timer while recording (click to stop), and a coffee cup while caffeine is on (click to turn off). Scroll down on the bar for the system tray.
+- **Panels:** Wi-Fi, Bluetooth, controls (volume, brightness, night light, caffeine, display mirroring, screen recording), notification history, media player, app launcher, clipboard history, wallpaper picker, power menu.
 - **Popups:** notifications, plus volume/brightness/now-playing popups when you press the media keys.
 
 Scripts and keybinds drive it through IPC: `qs ipc show` lists the commands, for example
@@ -90,6 +90,7 @@ locks even if the shell has crashed.
 | `Super` `Shift` `E` | Region screenshot, annotate in swappy |
 | `Super` `Shift` `R` | Record a region; again to stop |
 | `Super` `Shift` `N` | Night light |
+| `Super` `Shift` `I` | Caffeine: keep the screen on (no dim, lock or idle suspend) |
 | `Super` `Shift` `C` | Color picker (hex to clipboard) |
 | `Super` `P` | Mirror/extend the external monitor |
 

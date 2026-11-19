@@ -7,6 +7,7 @@ import QtQuick
 //   - region recording with wf-recorder (the bar shows a stop button while it runs)
 //   - night light through hyprsunset (its own schedule lives in hypr/hyprsunset.conf)
 //   - mirroring the laptop panel onto an external monitor, or extending to it
+//   - caffeine: keep the screen on (no dim, lock, screen-off or idle suspend)
 Scope {
     id: root
 
@@ -122,6 +123,33 @@ Scope {
         running: true
         triggeredOnStart: true
         onTriggered: root.refreshNightLight()
+    }
+
+    // ==========================================
+    // CAFFEINE
+    // ==========================================
+
+    // hypridle honours systemd idle inhibitors, so holding one pauses every idle
+    // listener. It lives as long as this process, so it goes away with the shell and
+    // can't be left on by a crash. Closing the lid or the power menu still suspends.
+    property bool caffeine: false
+
+    function toggleCaffeine(announce) {
+        caffeine = !caffeine;
+        if (announce)
+            notify(caffeine ? "Caffeine on" : "Caffeine off", caffeine ? "The screen stays on" : "", caffeine ? "preferences-desktop-screensaver" : "system-suspend");
+    }
+
+    Process {
+        running: root.caffeine
+        command: ["systemd-inhibit", "--what=idle", "--who=Caffeine", "--why=Caffeine mode is on", "sleep", "infinity"]
+
+        onExited: (exitCode, exitStatus) => {
+            if (root.caffeine && exitCode !== 0) {
+                root.caffeine = false;
+                root.notify("Can't keep the screen on", "systemd-inhibit failed", "dialog-error");
+            }
+        }
     }
 
     // ==========================================

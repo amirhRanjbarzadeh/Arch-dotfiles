@@ -424,7 +424,7 @@ PanelWindow {
             wallpaperService.apply(path);
         }
 
-        // Screen tools (SUPER+SHIFT+R, SUPER+SHIFT+N, SUPER+P). Key presses get a
+        // Screen tools (SUPER+SHIFT+R, SUPER+SHIFT+N, SUPER+SHIFT+I, SUPER+P). Key presses get a
         // notification; the same toggles in the controls panel don't need one.
 
         // Pick a region and start recording; again to stop and save.
@@ -435,6 +435,11 @@ PanelWindow {
 
         function nightLight(): void {
             screenService.toggleNightLight(true);
+        }
+
+        // Keep the screen on: pauses hypridle's dim, lock, screen-off and suspend.
+        function caffeine(): void {
+            screenService.toggleCaffeine(true);
         }
 
         // Mirror the laptop panel onto the external monitor, or go back to extending.
@@ -630,11 +635,13 @@ PanelWindow {
                         adapter: bluetoothService.adapter
                         recording: screenService.recording
                         recordingSeconds: screenService.recordingSeconds
+                        caffeine: screenService.caffeine
 
                         onWifiRequested: bar.togglePanel("wifi")
                         onVolumeRequested: bar.togglePanel("controls")
                         onBluetoothRequested: bar.togglePanel("bluetooth")
                         onRecordingStopRequested: screenService.toggleRecording()
+                        onCaffeineOffRequested: screenService.toggleCaffeine(false)
                     }
                 }
 

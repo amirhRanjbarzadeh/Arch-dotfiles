@@ -109,6 +109,9 @@ hl.bind(mainMod .. " + SHIFT + C", hl.dsp.exec_cmd("hyprpicker -a"))
 -- Night light toggle (also in the bar's controls panel)
 hl.bind(mainMod .. " + SHIFT + N", hl.dsp.exec_cmd("qs ipc call bar nightLight"))
 
+-- Caffeine toggle: keep the screen on (also in the controls panel; the bar shows a cup while on)
+hl.bind(mainMod .. " + SHIFT + I", hl.dsp.exec_cmd("qs ipc call bar caffeine"))
+
 -- Screen recording toggle: pick a region, press again (or click the bar's red dot) to stop
 hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd("qs ipc call bar record"))
 

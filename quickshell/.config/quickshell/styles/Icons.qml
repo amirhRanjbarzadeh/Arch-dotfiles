@@ -28,6 +28,7 @@ QtObject {
     readonly property string record: glyph(0xF044A)
     readonly property string nightLight: glyph(0xF0594)
     readonly property string monitor: glyph(0xF0379)
+    readonly property string caffeine: glyph(0xF0176) // coffee
 
     // Bluetooth
     readonly property string bluetooth: glyph(0xF00AF)

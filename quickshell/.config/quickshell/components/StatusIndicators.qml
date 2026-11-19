@@ -12,11 +12,13 @@ Row {
     property var adapter: null
     property bool recording: false
     property int recordingSeconds: 0
+    property bool caffeine: false
 
     signal wifiRequested
     signal volumeRequested
     signal bluetoothRequested
     signal recordingStopRequested
+    signal caffeineOffRequested
 
     readonly property var audio: audioSink?.audio ?? null
     readonly property var connectedBluetoothDevices: adapter?.devices.values.filter(device => device.connected) ?? []
@@ -50,6 +52,22 @@ Row {
             NumberAnimation { to: 0.45; duration: 900; easing.type: Easing.InOutSine }
             NumberAnimation { to: 1; duration: 900; easing.type: Easing.InOutSine }
         }
+    }
+
+    // ----------------------------------
+    // CAFFEINE (only while on; click to turn off)
+    // ----------------------------------
+
+    IconButton {
+        anchors.verticalCenter: parent.verticalCenter
+        visible: root.caffeine
+
+        icon: Icons.caffeine
+        iconColor: Theme.warning
+        iconSize: 14
+        tooltip: "Caffeine · screen stays on · click to turn off"
+
+        onClicked: root.caffeineOffRequested()
     }
 
     // ----------------------------------

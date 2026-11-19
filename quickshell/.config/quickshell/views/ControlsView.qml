@@ -96,6 +96,15 @@ Item {
 
                 ToggleRow {
                     Layout.fillWidth: true
+                    icon: Icons.caffeine
+                    title: "Caffeine"
+                    detail: root.screenTools?.caffeine ? "Screen stays on" : "Off"
+                    checked: root.screenTools?.caffeine ?? false
+                    onToggled: root.screenTools.toggleCaffeine(false)
+                }
+
+                ToggleRow {
+                    Layout.fillWidth: true
                     visible: root.screenTools?.canMirror ?? false
                     icon: Icons.monitor
                     title: "Mirror display"
